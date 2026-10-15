@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 
+	"github.com/shai38/betweenus/internal/plans"
 	_ "modernc.org/sqlite"
 )
 
@@ -44,4 +45,23 @@ func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 // Закрывает соединение
 func (r *SQLiteRepository) Close() error {
 	return r.db.Close()
+}
+
+// Добавляет новый план в базу данных и возвращает ID созданного плана и ошибку, если она есть
+func (r *SQLiteRepository) Add(plan plans.NewPlan) (plans.ID, error) {
+	result, err := r.db.Exec(
+		`INSERT INTO plans (title, note, topic)
+		 VALUES (?, ?, ?)`,
+		plan.Title, plan.Note, plan.Topic,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return plans.ID(id), nil
 }

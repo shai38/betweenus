@@ -6,6 +6,16 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const createPlansTable = `
+	CREATE TABLE IF NOT EXISTS plans (
+		id INTEGER PRIMARY KEY,
+		title TEXT NOT NULL,
+		note TEXT NOT NULL DEFAULT '',
+		topic INTEGER NOT NULL,
+		done INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0, 1))
+	);
+`
+
 type SQLiteRepository struct {
 	db *sql.DB
 }
@@ -18,6 +28,12 @@ func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 
 	// Проверяет доступность базы
 	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	// Создает таблицу, если ее нет
+	if _, err := db.Exec(createPlansTable); err != nil {
 		db.Close()
 		return nil, err
 	}

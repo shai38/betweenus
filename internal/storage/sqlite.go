@@ -40,3 +40,8 @@ func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 
 	return &SQLiteRepository{db: db}, nil
 }
+
+// Закрывает соединение
+func (r *SQLiteRepository) Close() error {
+	return r.db.Close()
+}

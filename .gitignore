@@ -31,3 +31,5 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+internal/.DS_Store
+.DS_Store

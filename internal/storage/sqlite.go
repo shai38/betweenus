@@ -65,3 +65,46 @@ func (r *SQLiteRepository) Add(plan plans.NewPlan) (plans.ID, error) {
 
 	return plans.ID(id), nil
 }
+
+// Возвращает все записи планов и ошибку
+func (r *SQLiteRepository) All() ([]plans.Plan, error) {
+	rows, err := r.db.Query(`
+		SELECT id, title, note, topic, done
+		FROM plans
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var result []plans.Plan
+	var id plans.ID
+	var title, note string
+	var topic plans.Topic
+	var done bool
+
+	for rows.Next() {
+		err := rows.Scan(&id, &title, &note, &topic, &done)
+		if err != nil {
+			return nil, err
+		}
+		plan := plans.Plan{
+			ID: id,
+			NewPlan: plans.NewPlan{
+				Title: title,
+				Note:  note,
+				Topic: topic,
+			},
+			Done: done,
+		}
+		result = append(result, plan)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

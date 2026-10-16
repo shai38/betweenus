@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/shai38/betweenus/internal/plans"
 	_ "modernc.org/sqlite"
@@ -107,4 +108,28 @@ func (r *SQLiteRepository) All() ([]plans.Plan, error) {
 	}
 
 	return result, nil
+}
+
+// Отмечает план выполненным
+func (r *SQLiteRepository) MarkDone(planID plans.ID) error {
+	result, err := r.db.Exec(
+		`UPDATE plans 
+		SET done = 1
+		WHERE id = ?`,
+		planID,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsCount, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsCount == 0 {
+		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+	}
+
+	return nil
 }

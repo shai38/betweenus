@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 
@@ -153,4 +154,38 @@ func TestMarkDone(t *testing.T) {
 		t.Fatalf("got done %t, want true", done)
 	}
 
+}
+
+func TestDeletePlan(t *testing.T) {
+	rep := newTestRepository(t)
+
+	movieNewPlan := plans.NewPlan{
+		Title: "Вечер кино",
+		Note:  "Выбрать фильм вместе",
+		Topic: plans.Movies,
+	}
+	movieID, err := rep.Add(movieNewPlan)
+	if err != nil {
+		t.Fatalf("Add() error: %v", err)
+	}
+
+	err = rep.Delete(movieID)
+	if err != nil {
+		t.Fatalf("Delete() error: %v", err)
+	}
+
+	res, err := rep.All()
+
+	if err != nil {
+		t.Fatalf("All() error: %v", err)
+	}
+
+	if len(res) != 0 {
+		t.Fatalf("All() returned %d plans after deletion, want 0", len(res))
+	}
+
+	err = rep.Delete(movieID)
+	if !errors.Is(err, plans.ErrPlanNotFound) {
+		t.Fatalf("expected not found error while deleting, got: %v", err)
+	}
 }

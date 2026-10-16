@@ -124,3 +124,33 @@ func TestAllPlan(t *testing.T) {
 	}
 
 }
+
+func TestMarkDone(t *testing.T) {
+	rep := newTestRepository(t)
+
+	movieNewPlan := plans.NewPlan{
+		Title: "Вечер кино",
+		Note:  "Выбрать фильм вместе",
+		Topic: plans.Movies,
+	}
+	movieID, err := rep.Add(movieNewPlan)
+	if err != nil {
+		t.Fatalf("Add() error: %v", err)
+	}
+
+	if err = rep.MarkDone(movieID); err != nil {
+		t.Fatalf("MarkDone() error: %v", err)
+	}
+
+	var done bool
+
+	err = rep.db.QueryRow(`SELECT done FROM plans WHERE id = ?`, movieID).Scan(&done)
+	if err != nil {
+		t.Fatalf("failed to query plans table: %v", err)
+	}
+
+	if !done {
+		t.Fatalf("got done %t, want true", done)
+	}
+
+}

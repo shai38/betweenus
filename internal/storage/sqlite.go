@@ -133,3 +133,23 @@ func (r *SQLiteRepository) MarkDone(planID plans.ID) error {
 
 	return nil
 }
+
+// Удаляет план
+func (r *SQLiteRepository) Delete(planID plans.ID) error {
+	result, err := r.db.Exec(`DELETE FROM plans WHERE id = ?`, planID)
+
+	if err != nil {
+		return err
+	}
+
+	rowsCount, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsCount == 0 {
+		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+	}
+
+	return nil
+}

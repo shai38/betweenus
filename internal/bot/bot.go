@@ -98,7 +98,7 @@ func handler(
 
 func formatPlans(plansList []plans.Plan) string {
 	if len(plansList) == 0 {
-		return "Пока планов нет 💭"
+		return ZeroPlansText
 	}
 
 	text := "💞 Наши планы\n\n"

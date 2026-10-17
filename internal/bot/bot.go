@@ -63,7 +63,7 @@ func handler(
 		sendMessage(ctx, b, chatID, sendText)
 
 	case "/help":
-		sendText := "Я BetweenUs 💕\n\n/start — начать\n /addplan — добавить план \n/plans — список планов\n/help — помощь"
+		sendText := "Я BetweenUs 💕\n\n/start — начать\n/addplan — добавить план \n/plans — список планов\n/help — помощь"
 		sendMessage(ctx, b, chatID, sendText)
 
 	case "/plans":
@@ -76,13 +76,8 @@ func handler(
 
 			return
 		}
-		if len(allPlans) == 0 {
-			sendText := "Пока планов нет 💭"
-			sendMessage(ctx, b, chatID, sendText)
 
-		} else {
-			sendMessage(ctx, b, chatID, formatPlans(allPlans))
-		}
+		sendMessage(ctx, b, chatID, formatPlans(allPlans))
 
 	case "/addplan":
 		userConv := Conversation{
@@ -102,6 +97,10 @@ func handler(
 }
 
 func formatPlans(plansList []plans.Plan) string {
+	if len(plansList) == 0 {
+		return "Пока планов нет 💭"
+	}
+
 	text := "💞 Наши планы\n\n"
 	counter := 1
 	for _, plan := range plansList {

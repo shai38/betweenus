@@ -44,16 +44,6 @@ func New(token string, rep plans.Repository) (*Bot, error) {
 	return betweenUsBot, nil
 }
 
-func sendMessage(ctx context.Context, b *tgBot.Bot, chatID int64, text string) {
-	_, err := b.SendMessage(ctx, &tgBot.SendMessageParams{
-		ChatID: chatID,
-		Text:   text,
-	})
-	if err != nil {
-		log.Printf("failed to send message: %v", err)
-	}
-}
-
 func handler(
 	ctx context.Context,
 	b *tgBot.Bot,
@@ -91,18 +81,7 @@ func handler(
 			sendMessage(ctx, b, chatID, sendText)
 
 		} else {
-			text := "💞 Наши планы\n\n"
-			counter := 1
-			for _, plan := range allPlans {
-				text += strconv.Itoa(counter) + ". " + plan.Title + "\n"
-				if plan.Note != "" {
-					text += plan.Note + "\n"
-				}
-				text += "\n"
-				counter++
-			}
-
-			sendMessage(ctx, b, chatID, text)
+			sendMessage(ctx, b, chatID, formatPlans(allPlans))
 		}
 
 	case "/addplan":
@@ -120,6 +99,21 @@ func handler(
 		handleConversation(ctx, b, rep, conversations, userText, userID, chatID)
 
 	}
+}
+
+func formatPlans(plansList []plans.Plan) string {
+	text := "💞 Наши планы\n\n"
+	counter := 1
+	for _, plan := range plansList {
+		text += strconv.Itoa(counter) + ". " + plan.Title + "\n"
+		if plan.Note != "" {
+			text += plan.Note + "\n"
+		}
+		text += "\n"
+		counter++
+	}
+
+	return text
 }
 
 func handleConversation(
@@ -163,5 +157,15 @@ func handleConversation(
 		userConv.State = StateIdle
 		userConv.NewPlan = plans.NewPlan{}
 		conversations.Set(userID, userConv)
+	}
+}
+
+func sendMessage(ctx context.Context, b *tgBot.Bot, chatID int64, text string) {
+	_, err := b.SendMessage(ctx, &tgBot.SendMessageParams{
+		ChatID: chatID,
+		Text:   text,
+	})
+	if err != nil {
+		log.Printf("failed to send message: %v", err)
 	}
 }

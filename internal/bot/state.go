@@ -31,3 +31,8 @@ func (s *ConversationStore) Get(userID int64) (Conversation, bool) {
 	conversation, ok := s.conversations[userID]
 	return conversation, ok
 }
+
+func (c *Conversation) Clear() {
+	c.State = StateIdle
+	c.NewPlan = plans.NewPlan{}
+}

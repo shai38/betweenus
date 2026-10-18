@@ -3,7 +3,8 @@ package plans
 type Topic int
 
 const (
-	Places Topic = iota + 1
+	Empty Topic = iota
+	Places
 	Movies
 	AtHome
 	Travel
@@ -12,7 +13,7 @@ const (
 
 func IsValidTopic(topic Topic) bool {
 	switch topic {
-	case Places, Movies, AtHome, Travel, Other:
+	case Empty, Places, Movies, AtHome, Travel, Other:
 		return true
 	default:
 		return false

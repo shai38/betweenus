@@ -128,35 +128,28 @@ func handleConversation(
 	if !ok {
 		return
 	}
+	userConv, readyToSave := processConversationInput(userConv, userText)
 
-	switch userConv.State {
-	case StateWaitingForTitle:
-		userConv.NewPlan.Title = userText
-		userConv.State = StateWaitingForNote
+	if !readyToSave {
 		conversations.Set(userID, userConv)
-
 		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, если нет, то введите -"
 		sendMessage(ctx, b, chatID, sendText)
-
-	case StateWaitingForNote:
-		if userText != "-" {
-			userConv.NewPlan.Note = userText
-		}
-		_, err := rep.Add(userConv.NewPlan)
-		if err != nil {
-			log.Printf("failed to add plan: %v", err)
-
-			sendErr := "Не удалось добавить план. Попробуй чуть позже 🙏"
-			sendMessage(ctx, b, chatID, sendErr)
-			return
-		}
-		sendText := "План успешно добавлен!"
-		sendMessage(ctx, b, chatID, sendText)
-
-		userConv.State = StateIdle
-		userConv.NewPlan = plans.NewPlan{}
-		conversations.Set(userID, userConv)
+		return
 	}
+
+	_, err := rep.Add(userConv.NewPlan)
+	if err != nil {
+		log.Printf("failed to add plan: %v", err)
+
+		sendErr := "Не удалось добавить план. Попробуй чуть позже 🙏"
+		sendMessage(ctx, b, chatID, sendErr)
+		return
+	}
+	sendText := "План успешно добавлен!"
+	sendMessage(ctx, b, chatID, sendText)
+
+	userConv.Clear()
+	conversations.Set(userID, userConv)
 }
 
 func sendMessage(ctx context.Context, b *tgBot.Bot, chatID int64, text string) {

@@ -3,7 +3,7 @@ package plans
 import "testing"
 
 func TestIsValidTopic(t *testing.T) {
-	notValidVals := []Topic{-1, 0, 100}
+	notValidVals := []Topic{-1, 100}
 
 	for _, val := range notValidVals {
 		if IsValidTopic(val) {
@@ -11,7 +11,7 @@ func TestIsValidTopic(t *testing.T) {
 		}
 	}
 
-	validVals := []Topic{Places, AtHome, Travel, Other}
+	validVals := []Topic{Empty, Places, AtHome, Travel, Other}
 	for _, val := range validVals {
 		if !IsValidTopic(val) {
 			t.Errorf("IsValidTopic(%v) = false, want true", val)

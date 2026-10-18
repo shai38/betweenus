@@ -20,6 +20,10 @@ func (b *Bot) Start(ctx context.Context) {
 	b.TgBot.Start(ctx)
 }
 
+type messageSender interface {
+	SendMessage(ctx context.Context, params *tgBot.SendMessageParams) (*models.Message, error)
+}
+
 func New(token string, rep plans.Repository) (*Bot, error) {
 	conversationStore := NewConversationStore()
 
@@ -117,7 +121,7 @@ func formatPlans(plansList []plans.Plan) string {
 
 func handleConversation(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b messageSender,
 	rep plans.Repository,
 	conversations *ConversationStore,
 	userText string,
@@ -145,14 +149,13 @@ func handleConversation(
 		sendMessage(ctx, b, chatID, sendErr)
 		return
 	}
-	sendText := "План успешно добавлен!"
-	sendMessage(ctx, b, chatID, sendText)
+	sendMessage(ctx, b, chatID, messagePlanAdded)
 
 	userConv.Clear()
 	conversations.Set(userID, userConv)
 }
 
-func sendMessage(ctx context.Context, b *tgBot.Bot, chatID int64, text string) {
+func sendMessage(ctx context.Context, b messageSender, chatID int64, text string) {
 	_, err := b.SendMessage(ctx, &tgBot.SendMessageParams{
 		ChatID: chatID,
 		Text:   text,

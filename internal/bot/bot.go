@@ -62,15 +62,15 @@ func handler(
 	chatID := update.Message.Chat.ID
 
 	switch userText := update.Message.Text; userText {
-	case "/start":
+	case CommandStart:
 		sendText := "Привет! Это BetweenUs 💕\nМаленькие шаги к тому, чтобы стать ближе."
 		sendMessage(ctx, b, chatID, sendText)
 
-	case "/help":
-		sendText := "Я BetweenUs 💕\n\n/start — начать\n/addplan — добавить план \n/plans — список планов\n/help — помощь"
+	case CommandHelp:
+		sendText := "Я BetweenUs 💕\n\n" + formatHelp()
 		sendMessage(ctx, b, chatID, sendText)
 
-	case "/plans":
+	case CommandPlans:
 		allPlans, err := rep.All()
 		if err != nil {
 			log.Printf("failed to get plans: %v", err)
@@ -83,7 +83,7 @@ func handler(
 
 		sendMessage(ctx, b, chatID, formatPlans(allPlans))
 
-	case "/addplan":
+	case CommandAddPlan:
 		userConv := Conversation{
 			State: StateWaitingForTitle,
 			NewPlan: plans.NewPlan{

@@ -52,3 +52,24 @@ func TestConversationStore(t *testing.T) {
 	checkConversationState(t, convStore, firstUserID, firstState)
 	checkConversationState(t, convStore, secondUserID, secondState)
 }
+
+func TestClear(t *testing.T) {
+	conversation := Conversation{
+		State:   StateWaitingForTitle,
+		NewPlan: plans.NewPlan{Title: "Watch SpiderMan", Note: "In 3D", Topic: plans.Movies},
+	}
+	conversation.Clear()
+
+	if conversation.State != StateIdle {
+		t.Errorf("state was not set to default after clear method, got %v, want %v", conversation.State, StateIdle)
+	}
+	if conversation.NewPlan.Title != "" {
+		t.Errorf("title of the new plan was not deleted after clear method, got %v", conversation.NewPlan.Title)
+	}
+	if conversation.NewPlan.Note != "" {
+		t.Errorf("note of the new plan was not deleted after clear method, got %v", conversation.NewPlan.Note)
+	}
+	if conversation.NewPlan.Topic != plans.Empty {
+		t.Errorf("topic of the new plan was not deleted after clear method, got %v", conversation.NewPlan.Topic)
+	}
+}

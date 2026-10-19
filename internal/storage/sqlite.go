@@ -35,6 +35,12 @@ const createCouplesTable = `
 		CHECK (first_user_id <> second_user_id)
 	);
 `
+
+const createUniqueCoupleIndex = `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_couples_unique_pair
+    ON couples (
+        MIN(first_user_id, second_user_id),
+        MAX(first_user_id, second_user_id)
 	);
 `
 
@@ -57,6 +63,7 @@ func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 		createPlansTable,
 		createInvitationsTable,
 		createCouplesTable,
+		createUniqueCoupleIndex,
 	}
 
 	err = createTables(db, queries)

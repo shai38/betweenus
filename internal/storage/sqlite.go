@@ -49,7 +49,7 @@ func (r *SQLiteRepository) Close() error {
 }
 
 // Добавляет новый план в базу данных и возвращает ID созданного плана и ошибку, если она есть
-func (r *SQLiteRepository) Add(plan plans.NewPlan) (plans.ID, error) {
+func (r *SQLiteRepository) Add(plan plans.NewPlan) (int64, error) {
 	result, err := r.db.Exec(
 		`INSERT INTO plans (title, note, topic)
 		 VALUES (?, ?, ?)`,
@@ -64,7 +64,7 @@ func (r *SQLiteRepository) Add(plan plans.NewPlan) (plans.ID, error) {
 		return 0, err
 	}
 
-	return plans.ID(id), nil
+	return id, nil
 }
 
 // Возвращает все записи планов и ошибку
@@ -81,7 +81,7 @@ func (r *SQLiteRepository) All() ([]plans.Plan, error) {
 	defer rows.Close()
 
 	var result []plans.Plan
-	var id plans.ID
+	var id int64
 	var title, note string
 	var topic plans.Topic
 	var done bool
@@ -111,7 +111,7 @@ func (r *SQLiteRepository) All() ([]plans.Plan, error) {
 }
 
 // Отмечает план выполненным
-func (r *SQLiteRepository) MarkDone(planID plans.ID) error {
+func (r *SQLiteRepository) MarkDone(planID int64) error {
 	result, err := r.db.Exec(
 		`UPDATE plans 
 		SET done = 1
@@ -135,7 +135,7 @@ func (r *SQLiteRepository) MarkDone(planID plans.ID) error {
 }
 
 // Удаляет план
-func (r *SQLiteRepository) Delete(planID plans.ID) error {
+func (r *SQLiteRepository) Delete(planID int64) error {
 	result, err := r.db.Exec(`DELETE FROM plans WHERE id = ?`, planID)
 
 	if err != nil {

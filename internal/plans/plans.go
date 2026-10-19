@@ -1,9 +1,7 @@
 package plans
 
-type ID int64
-
 type Plan struct {
-	ID   ID
+	ID   int64
 	Done bool
 	NewPlan
 }

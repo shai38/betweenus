@@ -1,8 +1,8 @@
 package plans
 
 type Repository interface {
-	Add(plan NewPlan) (ID, error)
+	Add(plan NewPlan) (int64, error)
 	All() ([]Plan, error)
-	MarkDone(planID ID) error
-	Delete(planID ID) error
+	MarkDone(planID int64) error
+	Delete(planID int64) error
 }

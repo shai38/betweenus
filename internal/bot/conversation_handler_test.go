@@ -28,21 +28,21 @@ type fakeRepository struct {
 	addedPlan plans.Plan
 }
 
-func (fr *fakeRepository) Add(newPlan plans.NewPlan) (plans.ID, error) {
-	fr.addedPlan = plans.Plan{ID: plans.ID(1), NewPlan: newPlan}
+func (fr *fakeRepository) Add(newPlan plans.NewPlan) (int64, error) {
+	fr.addedPlan = plans.Plan{ID: 1, NewPlan: newPlan}
 
 	return fr.addedPlan.ID, nil
 }
 
 func (fr *fakeRepository) All() ([]plans.Plan, error) {
-	if fr.addedPlan.ID != plans.ID(0) {
+	if fr.addedPlan.ID != 0 {
 		return []plans.Plan{fr.addedPlan}, nil
 	}
 
 	return []plans.Plan{}, nil
 }
 
-func (fr *fakeRepository) MarkDone(planID plans.ID) error {
+func (fr *fakeRepository) MarkDone(planID int64) error {
 	if fr.addedPlan.ID == planID {
 		fr.addedPlan.Done = true
 	} else {
@@ -52,7 +52,7 @@ func (fr *fakeRepository) MarkDone(planID plans.ID) error {
 	return nil
 }
 
-func (fr *fakeRepository) Delete(planID plans.ID) error {
+func (fr *fakeRepository) Delete(planID int64) error {
 	if fr.addedPlan.ID == planID {
 		fr.addedPlan = plans.Plan{}
 	} else {

@@ -254,6 +254,10 @@ func (r *SQLiteRepository) GetCoupleByID(coupleID int64) (couples.Couple, error)
 	return couple, nil
 }
 
+func (r *SQLiteRepository) GetCoupleByUserID(userID int64) (couples.Couple, error) {
+	return getCoupleByUserID(r.db, userID)
+}
+
 func (r *SQLiteRepository) AcceptInvitation(
 	code string,
 	recieverID int64,
@@ -271,6 +275,22 @@ func (r *SQLiteRepository) AcceptInvitation(
 		return 0, err
 	}
 
+	_, err = getCoupleByUserID(tx, inv.CreatedByUserID)
+	if err == nil {
+		return 0, couples.ErrOnlyOneCouplePerUser
+	}
+	if !errors.Is(err, couples.ErrCoupleNotFound) {
+		return 0, err
+	}
+
+	_, err = getCoupleByUserID(tx, recieverID)
+	if err == nil {
+		return 0, couples.ErrOnlyOneCouplePerUser
+	}
+	if !errors.Is(err, couples.ErrCoupleNotFound) {
+		return 0, err
+	}
+
 	coupleID, err := createCouple(tx, inv.CreatedByUserID, recieverID)
 	if err != nil {
 		return 0, err
@@ -285,6 +305,30 @@ func (r *SQLiteRepository) AcceptInvitation(
 	}
 
 	return coupleID, nil
+}
+
+func getCoupleByUserID(db rowQuerier, userID int64) (couples.Couple, error) {
+	couple := couples.Couple{}
+
+	err := db.QueryRow(
+		`SELECT id, first_user_id, second_user_id 
+		FROM couples 
+		WHERE first_user_id = ? OR second_user_id = ?`,
+		userID,
+		userID,
+	).Scan(
+		&couple.ID,
+		&couple.FirstUserID,
+		&couple.SecondUserID,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = couples.ErrCoupleNotFound
+		}
+		return couples.Couple{}, err
+	}
+
+	return couple, nil
 }
 
 func createCouple(db execQuerier, firstUserID int64, secondUserID int64) (int64, error) {

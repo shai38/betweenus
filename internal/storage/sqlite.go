@@ -41,7 +41,7 @@ const createUniqueCoupleIndex = `
     ON couples (
         MIN(first_user_id, second_user_id),
         MAX(first_user_id, second_user_id)
-	);
+    );
 `
 
 type SQLiteRepository struct {
@@ -249,4 +249,50 @@ func (r *SQLiteRepository) DeleteInvitation(code string) error {
 	}
 
 	return nil
+}
+
+func (r *SQLiteRepository) CreateCouple(firstUserID int64, secondUserID int64) (int64, error) {
+	if firstUserID == secondUserID {
+		return 0, couples.ErrSameUser
+	}
+
+	result, err := r.db.Exec(
+		`INSERT INTO couples (first_user_id, second_user_id)
+		 VALUES (?, ?)`,
+		firstUserID,
+		secondUserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func (r *SQLiteRepository) GetCoupleByID(coupleID int64) (couples.Couple, error) {
+	couple := couples.Couple{}
+
+	err := r.db.QueryRow(
+		`SELECT id, first_user_id, second_user_id FROM couples WHERE id = ?`,
+		coupleID,
+	).Scan(
+		&couple.ID,
+		&couple.FirstUserID,
+		&couple.SecondUserID,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = couples.ErrCoupleNotFound
+		}
+		return couples.Couple{}, err
+	}
+
+	return couple, nil
+
 }

@@ -48,6 +48,14 @@ type SQLiteRepository struct {
 	db *sql.DB
 }
 
+type rowQuerier interface {
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+type execQuerier interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
 func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
@@ -212,9 +220,46 @@ func (r *SQLiteRepository) CreateInvitation(inv couples.Invitation) error {
 }
 
 func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation, error) {
+	return getInvitationByCode(r.db, code)
+}
+
+func (r *SQLiteRepository) DeleteInvitation(code string) error {
+	return deleteInvitation(r.db, code)
+}
+
+func (r *SQLiteRepository) CreateCouple(firstUserID int64, secondUserID int64) (int64, error) {
+	return createCouple(r.db, firstUserID, secondUserID)
+}
+func createCouple(db execQuerier, firstUserID int64, secondUserID int64) (int64, error) {
+	if firstUserID == secondUserID {
+		return 0, couples.ErrSameUser
+	}
+
+	result, err := db.Exec(
+		`INSERT INTO couples (first_user_id, second_user_id)
+		VALUES (?, ?)`,
+		firstUserID,
+		secondUserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func getInvitationByCode(
+	db rowQuerier,
+	code string,
+) (couples.Invitation, error) {
 	inv := couples.Invitation{}
 
-	err := r.db.QueryRow(
+	err := db.QueryRow(
 		`SELECT code, created_by_user_id FROM invitations WHERE code = ?`,
 		code,
 	).Scan(
@@ -232,8 +277,8 @@ func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation,
 	return inv, nil
 }
 
-func (r *SQLiteRepository) DeleteInvitation(code string) error {
-	result, err := r.db.Exec(`DELETE FROM invitations WHERE code = ?`, code)
+func deleteInvitation(db execQuerier, code string) error {
+	result, err := db.Exec(`DELETE FROM invitations WHERE code = ?`, code)
 
 	if err != nil {
 		return err

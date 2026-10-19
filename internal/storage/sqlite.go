@@ -276,13 +276,11 @@ func (r *SQLiteRepository) AcceptInvitation(
 		return 0, err
 	}
 
-	err = deleteInvitation(tx, code)
-	if err != nil {
+	if err := deleteInvitation(tx, code); err != nil {
 		return 0, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
 

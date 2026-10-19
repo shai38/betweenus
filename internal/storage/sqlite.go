@@ -87,7 +87,9 @@ func (r *SQLiteRepository) Add(plan plans.NewPlan) (int64, error) {
 	result, err := r.db.Exec(
 		`INSERT INTO plans (title, note, topic)
 		 VALUES (?, ?, ?)`,
-		plan.Title, plan.Note, plan.Topic,
+		plan.Title,
+		plan.Note,
+		plan.Topic,
 	)
 	if err != nil {
 		return 0, err
@@ -192,7 +194,8 @@ func (r *SQLiteRepository) CreateInvitation(inv couples.Invitation) error {
 	_, err := r.db.Exec(
 		`INSERT INTO invitations (code, created_by_user_id) 
 		VALUES(?, ?, ?)`,
-		inv.Code, inv.CreatedByUserID,
+		inv.Code,
+		inv.CreatedByUserID,
 	)
 
 	return err
@@ -204,7 +207,10 @@ func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation,
 	err := r.db.QueryRow(
 		`SELECT code, created_by_user_id FROM invitations WHERE code = ?`,
 		code,
-	).Scan(&inv.Code, &inv.CreatedByUserID)
+	).Scan(
+		&inv.Code,
+		&inv.CreatedByUserID,
+	)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

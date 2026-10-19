@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -230,6 +231,64 @@ func (r *SQLiteRepository) DeleteInvitation(code string) error {
 func (r *SQLiteRepository) CreateCouple(firstUserID int64, secondUserID int64) (int64, error) {
 	return createCouple(r.db, firstUserID, secondUserID)
 }
+
+func (r *SQLiteRepository) GetCoupleByID(coupleID int64) (couples.Couple, error) {
+	couple := couples.Couple{}
+
+	err := r.db.QueryRow(
+		`SELECT id, first_user_id, second_user_id FROM couples WHERE id = ?`,
+		coupleID,
+	).Scan(
+		&couple.ID,
+		&couple.FirstUserID,
+		&couple.SecondUserID,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = couples.ErrCoupleNotFound
+		}
+		return couples.Couple{}, err
+	}
+
+	return couple, nil
+}
+
+func (r *SQLiteRepository) AcceptInvitation(
+	code string,
+	recieverID int64,
+) (int64, error) {
+
+	tx, err := r.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	defer tx.Rollback()
+
+	inv, err := getInvitationByCode(tx, code)
+	if err != nil {
+		return 0, err
+	}
+
+	coupleID, err := createCouple(tx, inv.CreatedByUserID, recieverID)
+	if err != nil {
+		return 0, err
+	}
+
+	err = deleteInvitation(tx, code)
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return coupleID, nil
+}
+
 func createCouple(db execQuerier, firstUserID int64, secondUserID int64) (int64, error) {
 	if firstUserID == secondUserID {
 		return 0, couples.ErrSameUser
@@ -294,50 +353,4 @@ func deleteInvitation(db execQuerier, code string) error {
 	}
 
 	return nil
-}
-
-func (r *SQLiteRepository) CreateCouple(firstUserID int64, secondUserID int64) (int64, error) {
-	if firstUserID == secondUserID {
-		return 0, couples.ErrSameUser
-	}
-
-	result, err := r.db.Exec(
-		`INSERT INTO couples (first_user_id, second_user_id)
-		 VALUES (?, ?)`,
-		firstUserID,
-		secondUserID,
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
-func (r *SQLiteRepository) GetCoupleByID(coupleID int64) (couples.Couple, error) {
-	couple := couples.Couple{}
-
-	err := r.db.QueryRow(
-		`SELECT id, first_user_id, second_user_id FROM couples WHERE id = ?`,
-		coupleID,
-	).Scan(
-		&couple.ID,
-		&couple.FirstUserID,
-		&couple.SecondUserID,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = couples.ErrCoupleNotFound
-		}
-		return couples.Couple{}, err
-	}
-
-	return couple, nil
-
 }

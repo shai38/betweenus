@@ -2,8 +2,10 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
+	"github.com/shai38/betweenus/internal/couples"
 	"github.com/shai38/betweenus/internal/plans"
 	_ "modernc.org/sqlite"
 )
@@ -15,6 +17,14 @@ const createPlansTable = `
 		note TEXT NOT NULL DEFAULT '',
 		topic INTEGER NOT NULL,
 		done INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0, 1))
+	);
+`
+
+const createInvitationsTable = `
+	CREATE TABLE IF NOT EXISTS invitations (
+        code TEXT PRIMARY KEY,
+        couple_id INTEGER NOT NULL,
+        created_by_user_id INTEGER NOT NULL
 	);
 `
 
@@ -34,8 +44,13 @@ func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 		return nil, err
 	}
 
-	// Создает таблицу, если ее нет
+	// Создает таблицы, если их нет
 	if _, err := db.Exec(createPlansTable); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	if _, err := db.Exec(createInvitationsTable); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -149,6 +164,53 @@ func (r *SQLiteRepository) DeletePlan(planID int64) error {
 
 	if rowsCount == 0 {
 		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+	}
+
+	return nil
+}
+
+func (r *SQLiteRepository) CreateInvitation(inv couples.Invitation) error {
+	_, err := r.db.Exec(
+		`INSERT INTO invitations (code, couple_id, created_by_user_id) 
+		VALUES(?, ?, ?)`,
+		inv.Code, inv.CoupleID, inv.CreatedByUserID,
+	)
+
+	return err
+}
+
+func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation, error) {
+	inv := couples.Invitation{}
+
+	err := r.db.QueryRow(
+		`SELECT code, couple_id, created_by_user_id FROM invitations WHERE code = ?`,
+		code,
+	).Scan(&inv.Code, &inv.CoupleID, &inv.CreatedByUserID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = couples.ErrInvitationNotFound
+		}
+		return couples.Invitation{}, err
+	}
+
+	return inv, nil
+}
+
+func (r *SQLiteRepository) DeleteInvitation(code string) error {
+	result, err := r.db.Exec(`DELETE FROM invitations WHERE code = ?`, code)
+
+	if err != nil {
+		return err
+	}
+
+	rowsCount, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsCount == 0 {
+		return fmt.Errorf("%w: code = %s", couples.ErrInvitationNotFound, code)
 	}
 
 	return nil

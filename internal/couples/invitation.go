@@ -7,7 +7,6 @@ import (
 
 type Invitation struct {
 	Code            string
-	CoupleID        int64
 	CreatedByUserID int64
 }
 

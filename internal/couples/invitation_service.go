@@ -8,9 +8,9 @@ func NewInvitationService(rep InvitationRepository) *InvitationService {
 	return &InvitationService{rep: rep}
 }
 
-func (is *InvitationService) CreateInvitation(coupleID int64, senderID int64) (Invitation, error) {
+func (is *InvitationService) CreateInvitation(senderID int64) (Invitation, error) {
 	code := GenerateInvitationCode()
-	invitation := Invitation{Code: code, CoupleID: coupleID, CreatedByUserID: senderID}
+	invitation := Invitation{Code: code, CreatedByUserID: senderID}
 	err := is.rep.CreateInvitation(invitation)
 	if err != nil {
 		return Invitation{}, err

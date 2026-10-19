@@ -52,7 +52,7 @@ func (fr *fakeRepository) MarkDone(planID int64) error {
 	return nil
 }
 
-func (fr *fakeRepository) Delete(planID int64) error {
+func (fr *fakeRepository) DeletePlan(planID int64) error {
 	if fr.addedPlan.ID == planID {
 		fr.addedPlan = plans.Plan{}
 	} else {

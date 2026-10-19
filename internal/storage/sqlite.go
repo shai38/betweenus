@@ -135,7 +135,7 @@ func (r *SQLiteRepository) MarkDone(planID int64) error {
 }
 
 // Удаляет план
-func (r *SQLiteRepository) Delete(planID int64) error {
+func (r *SQLiteRepository) DeletePlan(planID int64) error {
 	result, err := r.db.Exec(`DELETE FROM plans WHERE id = ?`, planID)
 
 	if err != nil {

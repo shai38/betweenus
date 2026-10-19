@@ -169,7 +169,7 @@ func TestDeletePlan(t *testing.T) {
 		t.Fatalf("Add() error: %v", err)
 	}
 
-	err = rep.Delete(movieID)
+	err = rep.DeletePlan(movieID)
 	if err != nil {
 		t.Fatalf("Delete() error: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestDeletePlan(t *testing.T) {
 		t.Fatalf("All() returned %d plans after deletion, want 0", len(res))
 	}
 
-	err = rep.Delete(movieID)
+	err = rep.DeletePlan(movieID)
 	if !errors.Is(err, plans.ErrPlanNotFound) {
 		t.Fatalf("expected not found error while deleting, got: %v", err)
 	}

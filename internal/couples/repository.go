@@ -7,6 +7,7 @@ type InvitationRepository interface {
 }
 
 type CoupleRepository interface {
-	CreateCouple(int64, int64) (int64, error)
-	GetCoupleByID(int64) (Couple, error)
+	CreateCouple(firstUserID int64, secondUserID int64) (int64, error)
+	GetCoupleByID(coupleID int64) (Couple, error)
+	GetCoupleByUserID(userID int64) (Couple, error)
 }

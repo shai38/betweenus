@@ -27,6 +27,14 @@ const createInvitationsTable = `
 	);
 `
 
+const createCouplesTable = `
+	CREATE TABLE IF NOT EXISTS couples (
+		id INTEGER PRIMARY KEY,
+		first_user_id INTEGER NOT NULL,
+		second_user_id INTEGER NOT NULL
+	);
+`
+
 type SQLiteRepository struct {
 	db *sql.DB
 }
@@ -42,19 +50,31 @@ func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
 		db.Close()
 		return nil, err
 	}
-
-	// Создает таблицы, если их нет
-	if _, err := db.Exec(createPlansTable); err != nil {
-		db.Close()
-		return nil, err
+	queries := []string{
+		createPlansTable,
+		createInvitationsTable,
+		createCouplesTable,
 	}
 
-	if _, err := db.Exec(createInvitationsTable); err != nil {
+	err = createTables(db, queries)
+
+	if err != nil {
 		db.Close()
 		return nil, err
 	}
 
 	return &SQLiteRepository{db: db}, nil
+}
+
+// createTables cоздает таблицы, если их нет
+func createTables(db *sql.DB, queries []string) error {
+	for _, sqlQuery := range queries {
+		if _, err := db.Exec(sqlQuery); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Закрывает соединение

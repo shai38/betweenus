@@ -31,7 +31,10 @@ const createCouplesTable = `
 	CREATE TABLE IF NOT EXISTS couples (
 		id INTEGER PRIMARY KEY,
 		first_user_id INTEGER NOT NULL,
-		second_user_id INTEGER NOT NULL
+		second_user_id INTEGER NOT NULL,
+		CHECK (first_user_id <> second_user_id)
+	);
+`
 	);
 `
 

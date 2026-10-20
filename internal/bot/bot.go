@@ -22,7 +22,7 @@ type messageSender interface {
 	SendMessage(ctx context.Context, params *tgBot.SendMessageParams) (*models.Message, error)
 }
 
-func New(token string, rep plans.Repository) (*Bot, error) {
+func New(token string, rep BotRepository) (*Bot, error) {
 	conversationStore := NewConversationStore()
 
 	TgBot, err := tgBot.New(

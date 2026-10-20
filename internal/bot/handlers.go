@@ -14,7 +14,7 @@ func handler(
 	ctx context.Context,
 	b *tgBot.Bot,
 	update *models.Update,
-	rep plans.Repository,
+	rep BotRepository,
 	conversations *ConversationStore,
 ) {
 	if update.Message == nil {

@@ -212,7 +212,7 @@ func (r *SQLiteRepository) DeletePlan(planID int64) error {
 func (r *SQLiteRepository) CreateInvitation(inv couples.Invitation) error {
 	_, err := r.db.Exec(
 		`INSERT INTO invitations (code, created_by_user_id) 
-		VALUES(?, ?, ?)`,
+		VALUES(?, ?)`,
 		inv.Code,
 		inv.CreatedByUserID,
 	)

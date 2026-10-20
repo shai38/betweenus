@@ -178,11 +178,14 @@ func sendMessage(
 	text string,
 	keyboard models.ReplyMarkup,
 ) {
-	_, err := b.SendMessage(ctx, &tgBot.SendMessageParams{
-		ChatID:      chatID,
-		Text:        text,
-		ReplyMarkup: keyboard,
-	})
+	_, err := b.SendMessage(
+		ctx,
+		&tgBot.SendMessageParams{
+			ChatID:      chatID,
+			Text:        text,
+			ReplyMarkup: keyboard,
+		},
+	)
 	if err != nil {
 		log.Printf("failed to send message: %v", err)
 	}

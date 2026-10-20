@@ -2,11 +2,13 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strconv"
 
 	tgBot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/shai38/betweenus/internal/couples"
 	"github.com/shai38/betweenus/internal/plans"
 )
 
@@ -25,12 +27,11 @@ func handler(
 
 	switch userText := update.Message.Text; userText {
 	case CommandStart:
-		sendText := "Привет! Это BetweenUs 💕\nМаленькие шаги к тому, чтобы стать ближе."
-		sendMessage(ctx, b, chatID, sendText)
+		handleStart(ctx, b, chatID, userID, rep)
 
 	case CommandHelp:
 		sendText := "Я BetweenUs 💕\n\n" + formatHelp()
-		sendMessage(ctx, b, chatID, sendText)
+		sendMessage(ctx, b, chatID, sendText, nil)
 
 	case CommandPlans:
 		allPlans, err := rep.All()
@@ -38,12 +39,12 @@ func handler(
 			log.Printf("failed to get plans: %v", err)
 
 			sendErr := "Не удалось загрузить планы. Попробуй чуть позже 🙏"
-			sendMessage(ctx, b, chatID, sendErr)
+			sendMessage(ctx, b, chatID, sendErr, nil)
 
 			return
 		}
 
-		sendMessage(ctx, b, chatID, formatPlans(allPlans))
+		sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
 
 	case CommandAddPlan:
 		userConv := Conversation{
@@ -54,12 +55,45 @@ func handler(
 		}
 		conversations.Set(userID, userConv)
 		sendText := "Как назовём ваш план? 💕"
-		sendMessage(ctx, b, chatID, sendText)
+		sendMessage(ctx, b, chatID, sendText, nil)
 
 	default:
 		handleConversation(ctx, b, rep, conversations, userText, userID, chatID)
-
 	}
+}
+
+func handleStart(
+	ctx context.Context,
+	b *tgBot.Bot,
+	chatID int64,
+	userID int64,
+	rep BotRepository,
+) {
+	var sendText string
+	var keyboard models.ReplyMarkup
+
+	_, err := rep.GetCoupleByUserID(userID)
+
+	if err == nil {
+		sendText = `С возвращением! 💕
+		Вы уже вместе в BetweenUs. Давай продолжим создавать ваши общие планы!`
+	} else {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = `BetweenUs 💕
+
+			Привет! Рады видеть тебя здесь.
+
+			BetweenUs — место для ваших общих планов и маленьких шагов навстречу друг другу.
+			Чтобы начать, создай пару или присоединись к партнёру по коду приглашения.`
+
+			keyboard = startKeyboard()
+		} else {
+			log.Printf("failed to get couple by user: %v", err)
+			sendText = "Возникли временные трудности. Попробуй чуть позже 🙏 "
+		}
+	}
+
+	sendMessage(ctx, b, chatID, sendText, keyboard)
 }
 
 func handleConversation(
@@ -80,7 +114,7 @@ func handleConversation(
 	if !readyToSave {
 		conversations.Set(userID, userConv)
 		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, если нет, то введите -"
-		sendMessage(ctx, b, chatID, sendText)
+		sendMessage(ctx, b, chatID, sendText, nil)
 		return
 	}
 
@@ -89,13 +123,33 @@ func handleConversation(
 		log.Printf("failed to add plan: %v", err)
 
 		sendErr := "Не удалось добавить план. Попробуй чуть позже 🙏"
-		sendMessage(ctx, b, chatID, sendErr)
+		sendMessage(ctx, b, chatID, sendErr, nil)
 		return
 	}
-	sendMessage(ctx, b, chatID, messagePlanAdded)
+	sendMessage(ctx, b, chatID, messagePlanAdded, nil)
 
 	userConv.Clear()
 	conversations.Set(userID, userConv)
+}
+
+// startKeyboard создаёт клавиатуру
+func startKeyboard() *models.InlineKeyboardMarkup {
+	return &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{
+					Text:         "Создать приглашение",
+					CallbackData: "create_invitation",
+				},
+			},
+			{
+				{
+					Text:         "У меня есть код",
+					CallbackData: "enter_invitation_code",
+				},
+			},
+		},
+	}
 }
 
 func formatPlans(plansList []plans.Plan) string {
@@ -117,10 +171,17 @@ func formatPlans(plansList []plans.Plan) string {
 	return text
 }
 
-func sendMessage(ctx context.Context, b messageSender, chatID int64, text string) {
+func sendMessage(
+	ctx context.Context,
+	b messageSender,
+	chatID int64,
+	text string,
+	keyboard models.ReplyMarkup,
+) {
 	_, err := b.SendMessage(ctx, &tgBot.SendMessageParams{
-		ChatID: chatID,
-		Text:   text,
+		ChatID:      chatID,
+		Text:        text,
+		ReplyMarkup: keyboard,
 	})
 	if err != nil {
 		log.Printf("failed to send message: %v", err)

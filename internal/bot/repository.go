@@ -8,4 +8,5 @@ import (
 type BotRepository interface {
 	plans.Repository
 	couples.CoupleRepository
+	couples.InvitationRepository
 }

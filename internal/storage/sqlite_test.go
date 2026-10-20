@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/shai38/betweenus/internal/couples"
 	"github.com/shai38/betweenus/internal/plans"
 )
 
@@ -187,5 +188,36 @@ func TestDeletePlan(t *testing.T) {
 	err = rep.DeletePlan(movieID)
 	if !errors.Is(err, plans.ErrPlanNotFound) {
 		t.Fatalf("expected not found error while deleting, got: %v", err)
+	}
+}
+
+func TestCreateInvitation(t *testing.T) {
+	repo := newTestRepository(t)
+
+	invitation := couples.Invitation{
+		Code:            "test-code-123",
+		CreatedByUserID: 12345,
+	}
+
+	err := repo.CreateInvitation(invitation)
+	if err != nil {
+		t.Fatalf("CreateInvitation() error = %v", err)
+	}
+
+	got, err := repo.GetInvitationByCode(invitation.Code)
+	if err != nil {
+		t.Fatalf("GetInvitationByCode() error = %v", err)
+	}
+
+	if got.Code != invitation.Code {
+		t.Errorf("Code = %q, want %q", got.Code, invitation.Code)
+	}
+
+	if got.CreatedByUserID != invitation.CreatedByUserID {
+		t.Errorf(
+			"CreatedByUserID = %d, want %d",
+			got.CreatedByUserID,
+			invitation.CreatedByUserID,
+		)
 	}
 }

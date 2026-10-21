@@ -8,7 +8,7 @@ type InvitationServiceRepository interface {
 type InvitationRepository interface {
 	CreateInvitation(Invitation) error
 	GetInvitationByCode(code string) (Invitation, error)
-	GetInvitationByUserID(userID int64) (Invitation, error)
+	GetInvitationByCreatorUserID(userID int64) (Invitation, error)
 	DeleteInvitation(code string) error
 }
 

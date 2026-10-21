@@ -224,7 +224,7 @@ func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation,
 	return getInvitationByCode(r.db, code)
 }
 
-func (r *SQLiteRepository) GetInvitationByUserID(userID int64) (couples.Invitation, error) {
+func (r *SQLiteRepository) GetInvitationByCreatorUserID(userID int64) (couples.Invitation, error) {
 	inv := couples.Invitation{}
 
 	err := r.db.QueryRow(

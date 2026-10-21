@@ -225,24 +225,7 @@ func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation,
 }
 
 func (r *SQLiteRepository) GetInvitationByCreatorUserID(userID int64) (couples.Invitation, error) {
-	inv := couples.Invitation{}
-
-	err := r.db.QueryRow(
-		`SELECT code, created_by_user_id FROM invitations WHERE created_by_user_id = ?`,
-		userID,
-	).Scan(
-		&inv.Code,
-		&inv.CreatedByUserID,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = couples.ErrInvitationNotFound
-		}
-		return couples.Invitation{}, err
-	}
-
-	return inv, nil
+	return getInvitationByCreatorUserID(r.db, userID)
 }
 
 func (r *SQLiteRepository) DeleteInvitation(code string) error {
@@ -384,6 +367,30 @@ func getInvitationByCode(
 	err := db.QueryRow(
 		`SELECT code, created_by_user_id FROM invitations WHERE code = ?`,
 		code,
+	).Scan(
+		&inv.Code,
+		&inv.CreatedByUserID,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = couples.ErrInvitationNotFound
+		}
+		return couples.Invitation{}, err
+	}
+
+	return inv, nil
+}
+
+func getInvitationByCreatorUserID(
+	db rowQuerier,
+	userID int64,
+) (couples.Invitation, error) {
+	inv := couples.Invitation{}
+
+	err := db.QueryRow(
+		`SELECT code, created_by_user_id FROM invitations WHERE created_by_user_id = ?`,
+		userID,
 	).Scan(
 		&inv.Code,
 		&inv.CreatedByUserID,

@@ -224,6 +224,27 @@ func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation,
 	return getInvitationByCode(r.db, code)
 }
 
+func (r *SQLiteRepository) GetInvitationByUserID(userID int64) (couples.Invitation, error) {
+	inv := couples.Invitation{}
+
+	err := r.db.QueryRow(
+		`SELECT code, created_by_user_id FROM invitations WHERE created_by_user_id = ?`,
+		userID,
+	).Scan(
+		&inv.Code,
+		&inv.CreatedByUserID,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = couples.ErrInvitationNotFound
+		}
+		return couples.Invitation{}, err
+	}
+
+	return inv, nil
+}
+
 func (r *SQLiteRepository) DeleteInvitation(code string) error {
 	return deleteInvitation(r.db, code)
 }

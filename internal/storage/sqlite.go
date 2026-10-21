@@ -210,14 +210,7 @@ func (r *SQLiteRepository) DeletePlan(planID int64) error {
 }
 
 func (r *SQLiteRepository) CreateInvitation(inv couples.Invitation) error {
-	_, err := r.db.Exec(
-		`INSERT INTO invitations (code, created_by_user_id) 
-		VALUES(?, ?)`,
-		inv.Code,
-		inv.CreatedByUserID,
-	)
-
-	return err
+	return createInvitation(r.db, inv)
 }
 
 func (r *SQLiteRepository) GetInvitationByCode(code string) (couples.Invitation, error) {
@@ -309,6 +302,17 @@ func (r *SQLiteRepository) AcceptInvitation(
 	}
 
 	return coupleID, nil
+}
+
+func createInvitation(db execQuerier, inv couples.Invitation) error {
+	_, err := db.Exec(
+		`INSERT INTO invitations (code, created_by_user_id) 
+		VALUES(?, ?)`,
+		inv.Code,
+		inv.CreatedByUserID,
+	)
+
+	return err
 }
 
 func getCoupleByUserID(db rowQuerier, userID int64) (couples.Couple, error) {

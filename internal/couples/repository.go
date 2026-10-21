@@ -1,9 +1,15 @@
 package couples
 
+type InvitationServiceRepository interface {
+	InvitationRepository
+	CoupleRepository
+}
+
 type InvitationRepository interface {
 	CreateInvitation(Invitation) error
-	GetInvitationByCode(string) (Invitation, error)
-	DeleteInvitation(string) error
+	GetInvitationByCode(code string) (Invitation, error)
+	GetInvitationByUserID(userID int64) (Invitation, error)
+	DeleteInvitation(code string) error
 }
 
 type CoupleRepository interface {

@@ -9,7 +9,7 @@ type InvitationRepository interface {
 	CreateInvitation(Invitation) error
 	GetInvitationByCode(code string) (Invitation, error)
 	GetInvitationByCreatorUserID(userID int64) (Invitation, error)
-	DeleteInvitation(code string) error
+	DeleteInvitationsByCreatorID(userID int64) error
 	CreateInvitationIfEligible(Invitation) (Invitation, error)
 }
 

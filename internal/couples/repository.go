@@ -10,6 +10,7 @@ type InvitationRepository interface {
 	GetInvitationByCode(code string) (Invitation, error)
 	GetInvitationByCreatorUserID(userID int64) (Invitation, error)
 	DeleteInvitation(code string) error
+	CreateInvitationIfEligible(Invitation) (Invitation, error)
 }
 
 type CoupleRepository interface {

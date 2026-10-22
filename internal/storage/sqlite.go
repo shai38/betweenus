@@ -304,6 +304,52 @@ func (r *SQLiteRepository) AcceptInvitation(
 	return coupleID, nil
 }
 
+func (r *SQLiteRepository) CreateInvitationIfEligible(
+	invitation couples.Invitation,
+) (couples.Invitation, error) {
+	tx, err := r.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return couples.Invitation{}, err
+	}
+	defer tx.Rollback()
+
+	// Проверяем, состоит ли пользователь в паре
+	_, err = getCoupleByUserID(tx, invitation.CreatedByUserID)
+	if err == nil {
+		return couples.Invitation{}, couples.ErrOnlyOneCouplePerUser
+	}
+	if !errors.Is(err, couples.ErrCoupleNotFound) {
+		return couples.Invitation{}, err
+	}
+
+	// Проверяем, есть ли уже активное приглашение
+	existing, err := getInvitationByCreatorUserID(
+		tx,
+		invitation.CreatedByUserID,
+	)
+	if err == nil {
+		// Изменений не было, поэтому можно просто завершить транзакцию
+		if err := tx.Commit(); err != nil {
+			return couples.Invitation{}, err
+		}
+		return existing, nil
+	}
+	if !errors.Is(err, couples.ErrInvitationNotFound) {
+		return couples.Invitation{}, err
+	}
+
+	// Создаём приглашение в той же транзакции
+	if err := createInvitation(tx, invitation); err != nil {
+		return couples.Invitation{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return couples.Invitation{}, err
+	}
+
+	return invitation, nil
+}
+
 func createInvitation(db execQuerier, inv couples.Invitation) error {
 	_, err := db.Exec(
 		`INSERT INTO invitations (code, created_by_user_id) 

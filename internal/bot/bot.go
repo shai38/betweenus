@@ -30,6 +30,7 @@ type messageSender interface {
 
 func New(token string, rep BotRepository) (*Bot, error) {
 	conversationStore := NewConversationStore()
+	invService := couples.NewInvitationService(rep)
 
 	TgBot, err := tgBot.New(
 		token,
@@ -44,8 +45,6 @@ func New(token string, rep BotRepository) (*Bot, error) {
 			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
 				answerCallbackQuery(ctx, b, update.CallbackQuery)
 				var sendText string
-
-				invService := couples.NewInvitationService(rep)
 
 				inv, err := invService.CreateInvitation(update.CallbackQuery.From.ID)
 				if err != nil {

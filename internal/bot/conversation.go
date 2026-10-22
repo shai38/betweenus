@@ -1,6 +1,6 @@
 package bot
 
-func processConversationInput(
+func processConversationPlanInput(
 	conversation Conversation,
 	userText string,
 ) (Conversation, bool) {

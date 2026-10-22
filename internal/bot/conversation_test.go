@@ -6,20 +6,20 @@ import (
 	"github.com/shai38/betweenus/internal/plans"
 )
 
-func TestProcessConversationInput(t *testing.T) {
+func TestProcessConversationPlanInput(t *testing.T) {
 	conversation := Conversation{
 		State:   StateWaitingForTitle,
 		NewPlan: plans.NewPlan{},
 	}
 	textTitle := "Watch drama movie"
 
-	conversation, _ = processConversationInput(conversation, textTitle)
+	conversation, _ = processConversationPlanInput(conversation, textTitle)
 	if conversation.State != StateWaitingForNote {
 		t.Fatalf("conversation didn't change state, got %v, want %v", conversation.State, StateWaitingForNote)
 	}
 
 	textNote := "Description"
-	conversation, readyToSave := processConversationInput(conversation, textNote)
+	conversation, readyToSave := processConversationPlanInput(conversation, textNote)
 	if !readyToSave {
 		t.Fatal("readyToSave is false after filling note")
 	}
@@ -27,7 +27,7 @@ func TestProcessConversationInput(t *testing.T) {
 		t.Fatalf("note was not filled, got %v, want %v", conversation.NewPlan.Note, textNote)
 	}
 
-	conversation, readyToSave = processConversationInput(conversation, "-")
+	conversation, readyToSave = processConversationPlanInput(conversation, "-")
 	if !readyToSave {
 		t.Fatal("readyToSave is false after filling note")
 	}

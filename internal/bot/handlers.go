@@ -102,7 +102,7 @@ func handleConversation(
 	if !ok {
 		return
 	}
-	userConv, readyToSave := processConversationInput(userConv, userText)
+	userConv, readyToSave := processConversationPlanInput(userConv, userText)
 
 	if !readyToSave {
 		conversations.Set(userID, userConv)

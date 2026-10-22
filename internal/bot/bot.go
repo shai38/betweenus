@@ -49,13 +49,14 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				inv, err := invService.CreateInvitation(update.CallbackQuery.From.ID)
 				if err != nil {
 					if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
-						sendText = "Твоя пара уже найдена."
+						sendText = "Ты уже состоишь в паре 💕"
 					} else {
 						log.Printf("failed to create invitation: %v", err)
 						sendText = "Не удалось сформировать приглашение. Попробуй чуть позже 🙏"
 					}
 				} else {
-					sendText = "Твой код приглашения: " + inv.Code + "\nОтправь его своему партнёру 💌"
+					sendText = "Твой код приглашения:\n" + inv.Code +
+						"\n\nОтправь его своему партнёру 💌"
 				}
 				sendMessage(ctx, b, update.CallbackQuery.Message.Message.Chat.ID, sendText, nil)
 			},

@@ -257,7 +257,7 @@ func (r *SQLiteRepository) GetCoupleByUserID(userID int64) (couples.Couple, erro
 
 func (r *SQLiteRepository) AcceptInvitation(
 	code string,
-	recieverID int64,
+	receiverID int64,
 ) (int64, error) {
 
 	tx, err := r.db.BeginTx(context.Background(), nil)
@@ -280,7 +280,7 @@ func (r *SQLiteRepository) AcceptInvitation(
 		return 0, err
 	}
 
-	_, err = getCoupleByUserID(tx, recieverID)
+	_, err = getCoupleByUserID(tx, receiverID)
 	if err == nil {
 		return 0, couples.ErrOnlyOneCouplePerUser
 	}
@@ -288,7 +288,7 @@ func (r *SQLiteRepository) AcceptInvitation(
 		return 0, err
 	}
 
-	coupleID, err := createCouple(tx, inv.CreatedByUserID, recieverID)
+	coupleID, err := createCouple(tx, inv.CreatedByUserID, receiverID)
 	if err != nil {
 		return 0, err
 	}

@@ -30,9 +30,9 @@ func handler(
 		handleStart(ctx, b, chatID, userID, rep)
 
 	case CommandHelp:
-		sendText := "Я BetweenUs 💕\n\n" + formatHelp()
-		sendMessage(ctx, b, chatID, sendText, nil)
+		sendText := helpIntro + "\n\n" + formatHelp()
 
+		sendMessage(ctx, b, chatID, sendText, nil)
 	case CommandPlans:
 		allPlans, err := rep.All()
 		if err != nil {
@@ -75,17 +75,10 @@ func handleStart(
 	_, err := rep.GetCoupleByUserID(userID)
 
 	if err == nil {
-		sendText = `С возвращением! 💕
-		Вы уже вместе в BetweenUs. Давай продолжим создавать ваши общие планы!`
+		sendText = startReturningUserText
 	} else {
 		if errors.Is(err, couples.ErrCoupleNotFound) {
-			sendText = `BetweenUs 💕
-
-			Привет! Рады видеть тебя здесь.
-
-			BetweenUs — место для ваших общих планов и маленьких шагов навстречу друг другу.
-			Чтобы начать, создай пару или присоединись к партнёру по коду приглашения.`
-
+			sendText = startNewUserText
 			keyboard = startKeyboard()
 		} else {
 			log.Printf("failed to get couple by user: %v", err)
@@ -113,7 +106,8 @@ func handleConversation(
 
 	if !readyToSave {
 		conversations.Set(userID, userConv)
-		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, если нет, то введите -"
+		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
+			"если нет, то введите -"
 		sendMessage(ctx, b, chatID, sendText, nil)
 		return
 	}

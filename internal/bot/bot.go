@@ -61,6 +61,40 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				sendMessage(ctx, b, update.CallbackQuery.Message.Message.Chat.ID, sendText, nil)
 			},
 		),
+		tgBot.WithCallbackQueryDataHandler(
+			"enter_invitation_code",
+			tgBot.MatchTypeExact,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				answerCallbackQuery(ctx, b, update.CallbackQuery)
+				userID := update.CallbackQuery.From.ID
+				var sendText string
+
+				if err := invService.CanAcceptInvitation(userID); err != nil {
+
+					if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
+						sendText = "Ты уже состоишь в паре 💕"
+					} else {
+						log.Printf("failed to check whether user can accept invitation: %v", err)
+						sendText = "Возникла техническая ошибка. Попробуй позже 🙏"
+					}
+				} else {
+					// Сохраняем состояние ожидания кода
+					conversationStore.Set(
+						userID,
+						Conversation{State: StateWaitingForInvitationCode},
+					)
+					sendText = "Отправь код приглашения, который тебе прислал партнёр 💌"
+				}
+
+				sendMessage(
+					ctx,
+					b,
+					update.CallbackQuery.Message.Message.Chat.ID,
+					sendText,
+					nil,
+				)
+			},
+		),
 	)
 	if err != nil {
 		return nil, err

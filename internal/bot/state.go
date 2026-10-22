@@ -8,6 +8,7 @@ const (
 	StateIdle ConversationState = iota
 	StateWaitingForTitle
 	StateWaitingForNote
+	StateWaitingForInvitationCode
 )
 
 type Conversation struct {

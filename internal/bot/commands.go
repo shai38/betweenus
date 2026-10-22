@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"strings"
 
 	tgBot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -39,11 +40,14 @@ var commands = []CommandInfo{
 }
 
 func formatHelp() string {
-	text := "Доступные команды:\n"
+	var text string
 
 	for _, command := range commands {
 		text += command.Name + " — " + command.Description + "\n"
 	}
+
+	return strings.TrimSpace(text)
+}
 
 func SetBotCommands(ctx context.Context, b *Bot) error {
 	botCommands := make([]models.BotCommand, 0, len(commands))

@@ -20,6 +20,9 @@ type Bot struct {
 func (b *Bot) Start(ctx context.Context) {
 	b.TgBot.Start(ctx)
 }
+func (b *Bot) SetMyCommands(ctx context.Context, params *tgBot.SetMyCommandsParams) (bool, error) {
+	return b.TgBot.SetMyCommands(ctx, params)
+}
 
 type messageSender interface {
 	SendMessage(ctx context.Context, params *tgBot.SendMessageParams) (*models.Message, error)

@@ -35,8 +35,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ctx := context.Background()
+
+	// Регистрация команд
+	if err := betweenusBot.SetBotCommands(ctx, b); err != nil {
+		log.Printf("failed to set bot commands: %v", err)
+	}
+
 	log.Println("BetweenUs is running...")
 
 	// Запуск
-	b.Start(context.Background())
+	b.Start(ctx)
 }

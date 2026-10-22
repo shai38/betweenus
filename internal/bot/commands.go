@@ -1,5 +1,12 @@
 package bot
 
+import (
+	"context"
+
+	tgBot "github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
+)
+
 type CommandInfo struct {
 	Name        string
 	Description string
@@ -38,5 +45,23 @@ func formatHelp() string {
 		text += command.Name + " — " + command.Description + "\n"
 	}
 
-	return text
+func SetBotCommands(ctx context.Context, b *Bot) error {
+	botCommands := make([]models.BotCommand, 0, len(commands))
+
+	for _, command := range commands {
+		botCommands = append(
+			botCommands,
+			models.BotCommand{
+				Command:     strings.TrimPrefix(command.Name, "/"),
+				Description: command.Description,
+			},
+		)
+	}
+
+	_, err := b.SetMyCommands(
+		ctx,
+		&tgBot.SetMyCommandsParams{Commands: botCommands},
+	)
+
+	return err
 }

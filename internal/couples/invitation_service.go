@@ -18,3 +18,7 @@ func (is *InvitationService) CreateInvitation(senderID int64) (Invitation, error
 
 	return is.rep.CreateInvitationIfEligible(invitation)
 }
+
+func (is *InvitationService) AcceptInvitation(code string, receiverID int64) (int64, error) {
+	return is.rep.AcceptInvitation(code, receiverID)
+}

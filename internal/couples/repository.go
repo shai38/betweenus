@@ -11,6 +11,7 @@ type InvitationRepository interface {
 	GetInvitationByCreatorUserID(userID int64) (Invitation, error)
 	DeleteInvitationsByCreatorID(userID int64) error
 	CreateInvitationIfEligible(Invitation) (Invitation, error)
+	AcceptInvitation(code string, userID int64) (int64, error)
 }
 
 type CoupleRepository interface {

@@ -2,9 +2,12 @@ package bot
 
 import (
 	"context"
+	"errors"
+	"log"
 
 	tgBot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/shai38/betweenus/internal/couples"
 	"github.com/shai38/betweenus/internal/plans"
 )
 
@@ -32,6 +35,29 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				handler(ctx, b, update, rep, conversationStore)
 			},
 		),
+		tgBot.WithCallbackQueryDataHandler(
+			"create_invitation",
+			tgBot.MatchTypeExact,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				answerCallbackQuery(ctx, b, update.CallbackQuery)
+				var sendText string
+
+				invService := couples.NewInvitationService(rep)
+
+				inv, err := invService.CreateInvitation(update.CallbackQuery.From.ID)
+				if err != nil {
+					if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
+						sendText = "Твоя пара уже найдена."
+					} else {
+						log.Printf("failed to create invitation: %v", err)
+						sendText = "Не удалось сформировать приглашение. Попробуй чуть позже 🙏"
+					}
+				} else {
+					sendText = "Твой код приглашения: " + inv.Code + "\nОтправь его своему партнёру 💌"
+				}
+				sendMessage(ctx, b, update.CallbackQuery.Message.Message.Chat.ID, sendText, nil)
+			},
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -44,4 +70,18 @@ func New(token string, rep BotRepository) (*Bot, error) {
 	}
 
 	return betweenUsBot, nil
+}
+
+func answerCallbackQuery(ctx context.Context, b *tgBot.Bot, CallbackQuery *models.CallbackQuery) {
+	if CallbackQuery != nil {
+		_, err := b.AnswerCallbackQuery(
+			ctx,
+			&tgBot.AnswerCallbackQueryParams{
+				CallbackQueryID: CallbackQuery.ID,
+			},
+		)
+		if err != nil {
+			log.Printf("failed to answer callback query: %v", err)
+		}
+	}
 }

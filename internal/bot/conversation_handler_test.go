@@ -62,7 +62,7 @@ func (fr *fakeRepository) DeletePlan(planID int64) error {
 	return nil
 }
 
-func TestHandleConversation_Success(t *testing.T) {
+func TestHandlePlanConversation_Success(t *testing.T) {
 	// Arrange: подготовка
 	rep := &fakeRepository{}
 	sender := &fakeMessageSender{}
@@ -71,24 +71,27 @@ func TestHandleConversation_Success(t *testing.T) {
 	const userID int64 = 123
 	const chatID int64 = 456
 
+	userConv := Conversation{
+		State: StateWaitingForNote,
+		NewPlan: plans.NewPlan{
+			Title: "Watch a movie",
+			Note:  "",
+			Topic: plans.Movies,
+		},
+	}
+
 	conversationStore.Set(
 		userID,
-		Conversation{
-			State: StateWaitingForNote,
-			NewPlan: plans.NewPlan{
-				Title: "Watch a movie",
-				Note:  "",
-				Topic: plans.Movies,
-			},
-		},
+		userConv,
 	)
 
 	// Act: вызываем проверяемую функцию
-	handleConversation(
+	handlePlanConversation(
 		context.Background(),
 		sender,
 		rep,
 		conversationStore,
+		userConv,
 		"On Friday",
 		userID,
 		chatID,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"strconv"
+	"strings"
 
 	tgBot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -92,7 +93,7 @@ func handleStart(
 func handleConversation(
 	ctx context.Context,
 	b messageSender,
-	rep plans.Repository,
+	rep BotRepository,
 	conversations *ConversationStore,
 	userText string,
 	userID int64,
@@ -102,6 +103,83 @@ func handleConversation(
 	if !ok {
 		return
 	}
+
+	switch userConv.State {
+	case StateWaitingForTitle, StateWaitingForNote:
+		handlePlanConversation(
+			ctx,
+			b,
+			rep,
+			conversations,
+			userConv,
+			userText,
+			userID,
+			chatID,
+		)
+
+	case StateWaitingForInvitationCode:
+		handleInvitationCode(
+			ctx,
+			b,
+			rep,
+			conversations,
+			userText,
+			userID,
+			chatID,
+		)
+	}
+}
+
+func handleInvitationCode(
+	ctx context.Context,
+	b messageSender,
+	rep BotRepository,
+	conversations *ConversationStore,
+	userText string,
+	userID int64,
+	chatID int64,
+) {
+	code := strings.TrimSpace(userText)
+	if code == "" {
+		sendMessage(ctx, b, chatID, "Отправь код приглашения 💌", nil)
+		return
+	}
+
+	invService := couples.NewInvitationService(rep)
+
+	_, err := invService.AcceptInvitation(code, userID)
+	if err != nil {
+		var sendText string
+		if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
+			sendText = "Один из вас уже состоит в паре 💕"
+		} else if errors.Is(err, couples.ErrInvitationNotFound) {
+			sendText = "Не удалось принять приглашение. Проверь код и попробуй ещё раз 🙏"
+		} else {
+			log.Printf("failed to accept invitation: %v", err)
+			sendText = "Возникла техническая ошибка. Попробуй позже 🙏"
+		}
+
+		sendMessage(ctx, b, chatID, sendText, nil)
+
+		return
+	}
+
+	conversation := Conversation{}
+	conversations.Set(userID, conversation)
+
+	sendMessage(ctx, b, chatID, "Вы теперь пара в BetweenUs! 💕", nil)
+}
+
+func handlePlanConversation(
+	ctx context.Context,
+	b messageSender,
+	rep plans.Repository,
+	conversations *ConversationStore,
+	userConv Conversation,
+	userText string,
+	userID int64,
+	chatID int64,
+) {
 	userConv, readyToSave := processConversationPlanInput(userConv, userText)
 
 	if !readyToSave {

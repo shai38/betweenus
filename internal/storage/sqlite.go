@@ -221,8 +221,8 @@ func (r *SQLiteRepository) GetInvitationByCreatorUserID(userID int64) (couples.I
 	return getInvitationByCreatorUserID(r.db, userID)
 }
 
-func (r *SQLiteRepository) DeleteInvitation(code string) error {
-	return deleteInvitation(r.db, code)
+func (r *SQLiteRepository) DeleteInvitationsByCreatorID(userID int64) error {
+	return deleteInvitationsByCreatorID(r.db, userID)
 }
 
 func (r *SQLiteRepository) CreateCouple(firstUserID int64, secondUserID int64) (int64, error) {
@@ -293,7 +293,11 @@ func (r *SQLiteRepository) AcceptInvitation(
 		return 0, err
 	}
 
-	if err := deleteInvitation(tx, code); err != nil {
+	if err := deleteInvitationsByCreatorID(tx, inv.CreatedByUserID); err != nil {
+		return 0, err
+	}
+	err = deleteInvitationsByCreatorID(tx, receiverID)
+	if err != nil && !errors.Is(err, couples.ErrInvitationNotFound) {
 		return 0, err
 	}
 
@@ -456,8 +460,8 @@ func getInvitationByCreatorUserID(
 	return inv, nil
 }
 
-func deleteInvitation(db execQuerier, code string) error {
-	result, err := db.Exec(`DELETE FROM invitations WHERE code = ?`, code)
+func deleteInvitationsByCreatorID(db execQuerier, userID int64) error {
+	result, err := db.Exec(`DELETE FROM invitations WHERE created_by_user_id = ?`, userID)
 
 	if err != nil {
 		return err
@@ -469,7 +473,7 @@ func deleteInvitation(db execQuerier, code string) error {
 	}
 
 	if rowsCount == 0 {
-		return fmt.Errorf("%w: code = %s", couples.ErrInvitationNotFound, code)
+		return fmt.Errorf("%w: created_by_user_id = %v", couples.ErrInvitationNotFound, userID)
 	}
 
 	return nil

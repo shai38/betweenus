@@ -280,3 +280,24 @@ func sendMessage(
 		log.Printf("failed to send message: %v", err)
 	}
 }
+
+func sendMarkdownMessage(
+	ctx context.Context,
+	b messageSender,
+	chatID int64,
+	text string,
+	keyboard models.ReplyMarkup,
+) {
+	_, err := b.SendMessage(
+		ctx,
+		&tgBot.SendMessageParams{
+			ChatID:      chatID,
+			Text:        text,
+			ParseMode:   models.ParseModeMarkdownV1,
+			ReplyMarkup: keyboard,
+		},
+	)
+	if err != nil {
+		log.Printf("failed to send message: %v", err)
+	}
+}

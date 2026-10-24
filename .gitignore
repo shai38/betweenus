@@ -37,3 +37,6 @@ go.work.sum
 *.db
 *.db-shm
 *.db-wal
+
+# md files
+*.md

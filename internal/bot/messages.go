@@ -24,3 +24,5 @@ const helpIntro = `Твой BetweenUs 💕
 важные детали и новые открытия друг о друге.
 
 Что можно сделать:`
+
+const coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕"

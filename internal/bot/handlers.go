@@ -147,7 +147,7 @@ func handleInvitationCode(
 
 	invService := couples.NewInvitationService(rep)
 
-	_, err := invService.AcceptInvitation(code, userID)
+	coupleID, err := invService.AcceptInvitation(code, userID)
 	if err != nil {
 		var sendText string
 		if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
@@ -167,7 +167,25 @@ func handleInvitationCode(
 	conversation := Conversation{}
 	conversations.Set(userID, conversation)
 
-	sendMessage(ctx, b, chatID, "Вы теперь пара в BetweenUs! 💕", nil)
+	notifyCoupleCreated(ctx, b, rep, coupleID)
+}
+
+// notifyCoupleCreated отправляет уведомление о создании пары обоим её участникам
+func notifyCoupleCreated(
+	ctx context.Context,
+	b messageSender,
+	rep couples.CoupleRepository,
+	coupleID int64,
+) {
+	couple, err := rep.GetCoupleByID(coupleID)
+
+	if err != nil {
+		log.Printf("failed to notify users about successful couple creation: %v", err)
+		return
+	}
+
+	sendMessage(ctx, b, couple.FirstUserID, coupleCreatedNotification, nil)
+	sendMessage(ctx, b, couple.SecondUserID, coupleCreatedNotification, nil)
 }
 
 func handlePlanConversation(

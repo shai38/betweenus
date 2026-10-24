@@ -55,8 +55,16 @@ func New(token string, rep BotRepository) (*Bot, error) {
 						sendText = "Не удалось сформировать приглашение. Попробуй чуть позже 🙏"
 					}
 				} else {
-					sendText = "Твой код приглашения:\n" + inv.Code +
+					sendText = "Твой код приглашения:\n\n`" + inv.Code + "`" +
 						"\n\nОтправь его своему партнёру 💌"
+					sendMarkdownMessage(
+						ctx,
+						b,
+						update.CallbackQuery.Message.Message.Chat.ID,
+						sendText,
+						nil,
+					)
+					return
 				}
 				sendMessage(ctx, b, update.CallbackQuery.Message.Message.Chat.ID, sendText, nil)
 			},

@@ -1,6 +1,6 @@
 package bot
 
-const ZeroPlansText = "Пока планов нет 💭"
+const ZeroPlansText = "Пока планов нет. 💭"
 const messagePlanAdded = "План успешно добавлен!"
 const startNewUserText = `BetweenUs 💕
 
@@ -16,7 +16,7 @@ const startReturningUserText = `С возвращением в BetweenUs 💕
 
 Продолжайте узнавать друг друга, сохранять важное и открывать новые стороны ваших отношений.
 
-Не знаешь, с чего начать? Напиши /help 💗`
+Не знаешь, с чего начать? Напиши /help. 💗`
 
 const helpIntro = `Твой BetweenUs 💕
 
@@ -26,5 +26,5 @@ const helpIntro = `Твой BetweenUs 💕
 Что можно сделать:`
 
 const coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕"
-const messagePlansLoadError = "Не удалось загрузить планы. Попробуй чуть позже 🙏"
-const messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже 🙏"
+const messagePlansLoadError = "Не удалось загрузить планы. Попробуй чуть позже. 🙏"
+const messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже. 🙏"

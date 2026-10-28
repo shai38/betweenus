@@ -40,7 +40,7 @@ func handler(
 		if err != nil {
 			if errors.Is(err, couples.ErrCoupleNotFound) {
 				sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
-					" чтобы отправить приглашение партнёру или ввести его код"
+					" чтобы отправить приглашение партнёру или ввести его код."
 			} else {
 				sendText = messagePlansLoadError
 			}
@@ -62,7 +62,7 @@ func handler(
 		if err != nil {
 			if errors.Is(err, couples.ErrCoupleNotFound) {
 				sendText = "План можно будет добавить, когда ты создашь пару 💕 Нажми /start," +
-					" чтобы отправить приглашение партнёру или ввести его код"
+					" чтобы отправить приглашение партнёру или ввести его код."
 			} else {
 				sendText = messageAddPlanLoadError
 			}
@@ -106,7 +106,7 @@ func handleStart(
 			keyboard = startKeyboard()
 		} else {
 			log.Printf("failed to get couple by user: %v", err)
-			sendText = "Возникли временные трудности. Попробуй чуть позже 🙏 "
+			sendText = "Возникли временные трудности. Попробуй чуть позже. 🙏"
 		}
 	}
 
@@ -174,12 +174,12 @@ func handleInvitationCode(
 	if err != nil {
 		var sendText string
 		if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
-			sendText = "Один из вас уже состоит в паре 💕"
+			sendText = "Один из вас уже состоит в паре. 💕"
 		} else if errors.Is(err, couples.ErrInvitationNotFound) {
-			sendText = "Не удалось принять приглашение. Проверь код и попробуй ещё раз 🙏"
+			sendText = "Не удалось принять приглашение. Проверь код и попробуй ещё раз. 🙏"
 		} else {
 			log.Printf("failed to accept invitation: %v", err)
-			sendText = "Возникла техническая ошибка. Попробуй позже 🙏"
+			sendText = "Возникла техническая ошибка. Попробуй позже. 🙏"
 		}
 
 		sendMessage(ctx, b, chatID, sendText, nil)
@@ -226,7 +226,7 @@ func handlePlanConversation(
 
 	if !readyToSave {
 		sendText = "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
-			"если нет, то введите -"
+			"если нет, то введите -."
 		sendMessage(ctx, b, chatID, sendText, nil)
 		return
 	}

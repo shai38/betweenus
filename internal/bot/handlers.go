@@ -70,12 +70,21 @@ func handler(
 			return
 		}
 
+		partnerID, err := couple.PartnerID(userID)
+		if err != nil {
+			log.Printf("failed to get partner id: %v", err)
+
+			sendMessage(ctx, b, chatID, messageAddPlanLoadError, nil)
+			return
+		}
+
 		userConv := Conversation{
 			State: StateWaitingForTitle,
 			NewPlan: plans.NewPlan{
 				Topic: plans.Other,
 			},
-			CoupleID: couple.ID,
+			CoupleID:  couple.ID,
+			PartnerID: partnerID,
 		}
 		conversations.Set(userID, userConv)
 		sendText = "Как назовём ваш план? 💕"

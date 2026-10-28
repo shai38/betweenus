@@ -39,7 +39,7 @@ func handler(
 		couple, err := rep.GetCoupleByUserID(userID)
 		if err != nil {
 			if errors.Is(err, couples.ErrCoupleNotFound) {
-				sendText = "Список планов появится, когда вы создадите пару 💕 Нажми /start," +
+				sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
 					" чтобы отправить приглашение партнёру или ввести его код"
 			} else {
 				sendText = messagePlansLoadError
@@ -61,7 +61,7 @@ func handler(
 		couple, err := rep.GetCoupleByUserID(userID)
 		if err != nil {
 			if errors.Is(err, couples.ErrCoupleNotFound) {
-				sendText = "План можно будет добавить, когда вы создадите пару 💕 Нажми /start," +
+				sendText = "План можно будет добавить, когда ты создашь пару 💕 Нажми /start," +
 					" чтобы отправить приглашение партнёру или ввести его код"
 			} else {
 				sendText = messageAddPlanLoadError

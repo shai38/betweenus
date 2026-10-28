@@ -103,13 +103,14 @@ func (r *SQLiteRepository) Close() error {
 }
 
 // Добавляет новый план в базу данных и возвращает ID созданного плана и ошибку, если она есть
-func (r *SQLiteRepository) Add(plan plans.NewPlan) (int64, error) {
+func (r *SQLiteRepository) Add(plan plans.NewPlan, coupleID int64) (int64, error) {
 	result, err := r.db.Exec(
-		`INSERT INTO plans (title, note, topic)
-		 VALUES (?, ?, ?)`,
+		`INSERT INTO plans (title, note, topic, couple_id)
+		 VALUES (?, ?, ?, ?)`,
 		plan.Title,
 		plan.Note,
 		plan.Topic,
+		coupleID,
 	)
 	if err != nil {
 		return 0, err
@@ -124,11 +125,13 @@ func (r *SQLiteRepository) Add(plan plans.NewPlan) (int64, error) {
 }
 
 // Возвращает все записи планов и ошибку
-func (r *SQLiteRepository) All() ([]plans.Plan, error) {
-	rows, err := r.db.Query(`
-		SELECT id, title, note, topic, done
+func (r *SQLiteRepository) All(coupleID int64) ([]plans.Plan, error) {
+	rows, err := r.db.Query(
+		`SELECT id, title, note, topic, done
 		FROM plans
-	`)
+		WHERE couple_id = ?`,
+		coupleID,
+	)
 
 	if err != nil {
 		return nil, err
@@ -154,7 +157,8 @@ func (r *SQLiteRepository) All() ([]plans.Plan, error) {
 				Note:  note,
 				Topic: topic,
 			},
-			Done: done,
+			Done:     done,
+			CoupleID: coupleID,
 		}
 		result = append(result, plan)
 	}

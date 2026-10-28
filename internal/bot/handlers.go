@@ -36,7 +36,18 @@ func handler(
 
 		sendMessage(ctx, b, chatID, sendText, nil)
 	case CommandPlans:
-		allPlans, err := rep.All()
+		couple, err := rep.GetCoupleByUserID(userID)
+		if err != nil {
+			if errors.Is(err, couples.ErrCoupleNotFound) {
+				sendText = "Список планов появится, когда вы создадите пару 💕 Нажми /start," +
+					" чтобы отправить приглашение партнёру или ввести его код"
+			} else {
+				sendText = messagePlansLoadError
+			}
+			sendMessage(ctx, b, chatID, sendText, nil)
+			return
+		}
+		allPlans, err := rep.All(couple.ID)
 		if err != nil {
 			log.Printf("failed to get plans: %v", err)
 
@@ -47,14 +58,27 @@ func handler(
 		sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
 
 	case CommandAddPlan:
+		couple, err := rep.GetCoupleByUserID(userID)
+		if err != nil {
+			if errors.Is(err, couples.ErrCoupleNotFound) {
+				sendText = "План можно будет добавить, когда вы создадите пару 💕 Нажми /start," +
+					" чтобы отправить приглашение партнёру или ввести его код"
+			} else {
+				sendText = messageAddPlanLoadError
+			}
+			sendMessage(ctx, b, chatID, sendText, nil)
+			return
+		}
+
 		userConv := Conversation{
 			State: StateWaitingForTitle,
 			NewPlan: plans.NewPlan{
 				Topic: plans.Other,
 			},
+			CoupleID: couple.ID,
 		}
 		conversations.Set(userID, userConv)
-		sendText := "Как назовём ваш план? 💕"
+		sendText = "Как назовём ваш план? 💕"
 		sendMessage(ctx, b, chatID, sendText, nil)
 
 	default:
@@ -202,13 +226,12 @@ func handlePlanConversation(
 
 	if !readyToSave {
 		sendText = "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
-		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
 			"если нет, то введите -"
 		sendMessage(ctx, b, chatID, sendText, nil)
 		return
 	}
 
-	_, err := rep.Add(userConv.NewPlan)
+	_, err := rep.Add(userConv.NewPlan, userConv.CoupleID)
 	if err != nil {
 		log.Printf("failed to add plan: %v", err)
 

@@ -25,13 +25,14 @@ func handler(
 	}
 	userID := update.Message.From.ID
 	chatID := update.Message.Chat.ID
+	var sendText string
 
 	switch userText := update.Message.Text; userText {
 	case CommandStart:
 		handleStart(ctx, b, chatID, userID, rep)
 
 	case CommandHelp:
-		sendText := helpIntro + "\n\n" + formatHelp()
+		sendText = helpIntro + "\n\n" + formatHelp()
 
 		sendMessage(ctx, b, chatID, sendText, nil)
 	case CommandPlans:
@@ -197,9 +198,10 @@ func handlePlanConversation(
 	chatID int64,
 ) {
 	userConv, readyToSave := processConversationPlanInput(userConv, userText)
+	var sendText string
 
 	if !readyToSave {
-		conversations.Set(userID, userConv)
+		sendText = "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
 		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
 			"если нет, то введите -"
 		sendMessage(ctx, b, chatID, sendText, nil)

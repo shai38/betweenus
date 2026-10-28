@@ -15,7 +15,7 @@ import (
 
 func handler(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b messageSender,
 	update *models.Update,
 	rep BotRepository,
 	conversations *ConversationStore,

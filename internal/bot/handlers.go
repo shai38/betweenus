@@ -225,6 +225,7 @@ func handlePlanConversation(
 	var sendText string
 
 	if !readyToSave {
+		conversations.Set(userID, userConv)
 		sendText = "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
 			"если нет, то введите -."
 		sendMessage(ctx, b, chatID, sendText, nil)

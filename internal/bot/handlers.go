@@ -250,6 +250,10 @@ func handlePlanConversation(
 	}
 	sendMessage(ctx, b, chatID, messagePlanAdded, nil)
 
+	// Отправление уведомления партнёру о создании плана
+	sendText = "Твой партнёр добавил новый план:" + userConv.NewPlan.Title + ". 💕"
+	sendMessage(ctx, b, userConv.PartnerID, sendText, nil)
+
 	userConv.Clear()
 	conversations.Set(userID, userConv)
 }

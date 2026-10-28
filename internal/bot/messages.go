@@ -26,3 +26,5 @@ const helpIntro = `Твой BetweenUs 💕
 Что можно сделать:`
 
 const coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕"
+const messagePlansLoadError = "Не удалось загрузить планы. Попробуй чуть позже 🙏"
+const messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже 🙏"

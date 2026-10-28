@@ -39,9 +39,7 @@ func handler(
 		if err != nil {
 			log.Printf("failed to get plans: %v", err)
 
-			sendErr := "Не удалось загрузить планы. Попробуй чуть позже 🙏"
-			sendMessage(ctx, b, chatID, sendErr, nil)
-
+			sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
 			return
 		}
 
@@ -212,8 +210,7 @@ func handlePlanConversation(
 	if err != nil {
 		log.Printf("failed to add plan: %v", err)
 
-		sendErr := "Не удалось добавить план. Попробуй чуть позже 🙏"
-		sendMessage(ctx, b, chatID, sendErr, nil)
+		sendMessage(ctx, b, chatID, messageAddPlanLoadError, nil)
 		return
 	}
 	sendMessage(ctx, b, chatID, messagePlanAdded, nil)

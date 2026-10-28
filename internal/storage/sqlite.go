@@ -17,7 +17,8 @@ const createPlansTable = `
 		title TEXT NOT NULL,
 		note TEXT NOT NULL DEFAULT '',
 		topic INTEGER NOT NULL,
-		done INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0, 1))
+		done INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0, 1)),
+		couple_id INTEGER NOT NULL REFERENCES couples(id)
 	);
 `
 
@@ -58,7 +59,7 @@ type execQuerier interface {
 }
 
 func NewSQLiteRepository(dbPath string) (*SQLiteRepository, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		return nil, err
 	}

@@ -97,7 +97,7 @@ func handler(
 
 func handleStart(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b messageSender,
 	chatID int64,
 	userID int64,
 	rep BotRepository,

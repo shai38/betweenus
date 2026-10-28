@@ -49,14 +49,14 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				inv, err := invService.CreateInvitation(update.CallbackQuery.From.ID)
 				if err != nil {
 					if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
-						sendText = "Ты уже состоишь в паре 💕"
+						sendText = "Ты уже состоишь в паре. 💕"
 					} else {
 						log.Printf("failed to create invitation: %v", err)
-						sendText = "Не удалось сформировать приглашение. Попробуй чуть позже 🙏"
+						sendText = "Не удалось сформировать приглашение. Попробуй чуть позже. 🙏"
 					}
 				} else {
 					sendText = "Твой код приглашения:\n\n`" + inv.Code + "`" +
-						"\n\nОтправь его своему партнёру 💌"
+						"\n\nОтправь его своему партнёру. 💌"
 					sendMarkdownMessage(
 						ctx,
 						b,
@@ -80,10 +80,10 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				if err := invService.CanAcceptInvitation(userID); err != nil {
 
 					if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
-						sendText = "Ты уже состоишь в паре 💕"
+						sendText = "Ты уже состоишь в паре. 💕"
 					} else {
 						log.Printf("failed to check whether user can accept invitation: %v", err)
-						sendText = "Возникла техническая ошибка. Попробуй позже 🙏"
+						sendText = "Возникла техническая ошибка. Попробуй позже. 🙏"
 					}
 				} else {
 					// Сохраняем состояние ожидания кода
@@ -91,7 +91,7 @@ func New(token string, rep BotRepository) (*Bot, error) {
 						userID,
 						Conversation{State: StateWaitingForInvitationCode},
 					)
-					sendText = "Отправь код приглашения, который тебе прислал партнёр 💌"
+					sendText = "Отправь код приглашения, который тебе прислал партнёр. 💌"
 				}
 
 				sendMessage(

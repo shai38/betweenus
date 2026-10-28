@@ -28,14 +28,18 @@ type fakeRepository struct {
 	addedPlan plans.Plan
 }
 
-func (fr *fakeRepository) Add(newPlan plans.NewPlan) (int64, error) {
-	fr.addedPlan = plans.Plan{ID: 1, NewPlan: newPlan}
+func (fr *fakeRepository) Add(newPlan plans.NewPlan, coupleID int64) (int64, error) {
+	fr.addedPlan = plans.Plan{
+		ID:       1,
+		NewPlan:  newPlan,
+		CoupleID: coupleID,
+	}
 
 	return fr.addedPlan.ID, nil
 }
 
-func (fr *fakeRepository) All() ([]plans.Plan, error) {
-	if fr.addedPlan.ID != 0 {
+func (fr *fakeRepository) All(coupleID int64) ([]plans.Plan, error) {
+	if fr.addedPlan.ID != 0 && fr.addedPlan.CoupleID == coupleID {
 		return []plans.Plan{fr.addedPlan}, nil
 	}
 
@@ -70,6 +74,7 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 
 	const userID int64 = 123
 	const chatID int64 = 456
+	const coupleID int64 = 789
 
 	userConv := Conversation{
 		State: StateWaitingForNote,
@@ -78,6 +83,7 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 			Note:  "",
 			Topic: plans.Movies,
 		},
+		CoupleID: coupleID,
 	}
 
 	conversationStore.Set(
@@ -110,6 +116,9 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 
 	if got.Topic != plans.Movies {
 		t.Errorf("Topic = %v, want %v", got.Topic, plans.Movies)
+	}
+	if got.CoupleID != coupleID {
+		t.Errorf("CoupleID = %d, want %d", got.CoupleID, coupleID)
 	}
 
 	// Assert: проверяем отправленное сообщение

@@ -35,6 +35,17 @@ func newTestRepository(t *testing.T) *SQLiteRepository {
 	return rep
 }
 
+func createTestCouple(t *testing.T, rep *SQLiteRepository) int64 {
+	t.Helper()
+
+	coupleID, err := rep.CreateCouple(100, 200)
+	if err != nil {
+		t.Fatalf("CreateCouple() error: %v", err)
+	}
+
+	return coupleID
+}
+
 func TestNewSQLiteRepository(t *testing.T) {
 	rep := newTestRepository(t)
 
@@ -61,6 +72,7 @@ func TestNewSQLiteRepository(t *testing.T) {
 
 func TestAddPlan(t *testing.T) {
 	rep := newTestRepository(t)
+	coupleID := createTestCouple(t, rep)
 
 	newPlan := plans.NewPlan{
 		Title: "Вечер кино",
@@ -68,7 +80,7 @@ func TestAddPlan(t *testing.T) {
 		Topic: plans.Movies,
 	}
 
-	id, err := rep.Add(newPlan)
+	id, err := rep.Add(newPlan, coupleID)
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
 	}
@@ -77,15 +89,31 @@ func TestAddPlan(t *testing.T) {
 	}
 }
 
+func TestAddPlanRejectsUnknownCoupleID(t *testing.T) {
+	rep := newTestRepository(t)
+	coupleID := createTestCouple(t, rep)
+
+	newPlan := plans.NewPlan{Title: "Сходить в кино"}
+	if _, err := rep.Add(newPlan, coupleID); err != nil {
+		t.Fatalf("Add() with existing couple ID error: %v", err)
+	}
+
+	const unknownCoupleID int64 = 999999
+	if _, err := rep.Add(newPlan, unknownCoupleID); err == nil {
+		t.Fatal("Add() with unknown couple ID error = nil, want foreign key constraint error")
+	}
+}
+
 func TestAllPlan(t *testing.T) {
 	rep := newTestRepository(t)
+	coupleID := createTestCouple(t, rep)
 
 	movieNewPlan := plans.NewPlan{
 		Title: "Вечер кино",
 		Note:  "Выбрать фильм вместе",
 		Topic: plans.Movies,
 	}
-	movieID, err := rep.Add(movieNewPlan)
+	movieID, err := rep.Add(movieNewPlan, coupleID)
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
 	}
@@ -96,23 +124,25 @@ func TestAllPlan(t *testing.T) {
 		Topic: plans.Places,
 	}
 
-	restID, err := rep.Add(restNewPlan)
+	restID, err := rep.Add(restNewPlan, coupleID)
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
 	}
 
-	res, err := rep.All()
+	res, err := rep.All(coupleID)
 
 	if err != nil {
 		t.Fatalf("All() error: %v", err)
 	}
 	moviePlan := plans.Plan{
-		ID:      movieID,
-		NewPlan: movieNewPlan,
+		ID:       movieID,
+		NewPlan:  movieNewPlan,
+		CoupleID: coupleID,
 	}
 	restPlan := plans.Plan{
-		ID:      restID,
-		NewPlan: restNewPlan,
+		ID:       restID,
+		NewPlan:  restNewPlan,
+		CoupleID: coupleID,
 	}
 
 	if len(res) != 2 {
@@ -127,15 +157,59 @@ func TestAllPlan(t *testing.T) {
 
 }
 
+func TestAllPlansAreScopedToCouple(t *testing.T) {
+	rep := newTestRepository(t)
+	firstCoupleID := createTestCouple(t, rep)
+	secondCoupleID, err := rep.CreateCouple(300, 400)
+	if err != nil {
+		t.Fatalf("CreateCouple() error: %v", err)
+	}
+
+	firstPlan := plans.NewPlan{Title: "Вечер кино"}
+	firstPlanID, err := rep.Add(firstPlan, firstCoupleID)
+	if err != nil {
+		t.Fatalf("Add() for first couple error: %v", err)
+	}
+
+	secondPlan := plans.NewPlan{Title: "Поход в музей"}
+	secondPlanID, err := rep.Add(secondPlan, secondCoupleID)
+	if err != nil {
+		t.Fatalf("Add() for second couple error: %v", err)
+	}
+
+	firstCouplePlans, err := rep.All(firstCoupleID)
+	if err != nil {
+		t.Fatalf("All() for first couple error: %v", err)
+	}
+	if len(firstCouplePlans) != 1 {
+		t.Fatalf("All() for first couple returned %d plans, want 1", len(firstCouplePlans))
+	}
+	if firstCouplePlans[0].ID != firstPlanID || firstCouplePlans[0].CoupleID != firstCoupleID {
+		t.Errorf("All() for first couple returned unexpected plan: %+v", firstCouplePlans[0])
+	}
+
+	secondCouplePlans, err := rep.All(secondCoupleID)
+	if err != nil {
+		t.Fatalf("All() for second couple error: %v", err)
+	}
+	if len(secondCouplePlans) != 1 {
+		t.Fatalf("All() for second couple returned %d plans, want 1", len(secondCouplePlans))
+	}
+	if secondCouplePlans[0].ID != secondPlanID || secondCouplePlans[0].CoupleID != secondCoupleID {
+		t.Errorf("All() for second couple returned unexpected plan: %+v", secondCouplePlans[0])
+	}
+}
+
 func TestMarkDone(t *testing.T) {
 	rep := newTestRepository(t)
+	coupleID := createTestCouple(t, rep)
 
 	movieNewPlan := plans.NewPlan{
 		Title: "Вечер кино",
 		Note:  "Выбрать фильм вместе",
 		Topic: plans.Movies,
 	}
-	movieID, err := rep.Add(movieNewPlan)
+	movieID, err := rep.Add(movieNewPlan, coupleID)
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
 	}
@@ -159,13 +233,14 @@ func TestMarkDone(t *testing.T) {
 
 func TestDeletePlan(t *testing.T) {
 	rep := newTestRepository(t)
+	coupleID := createTestCouple(t, rep)
 
 	movieNewPlan := plans.NewPlan{
 		Title: "Вечер кино",
 		Note:  "Выбрать фильм вместе",
 		Topic: plans.Movies,
 	}
-	movieID, err := rep.Add(movieNewPlan)
+	movieID, err := rep.Add(movieNewPlan, coupleID)
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
 	}
@@ -175,7 +250,7 @@ func TestDeletePlan(t *testing.T) {
 		t.Fatalf("Delete() error: %v", err)
 	}
 
-	res, err := rep.All()
+	res, err := rep.All(coupleID)
 
 	if err != nil {
 		t.Fatalf("All() error: %v", err)

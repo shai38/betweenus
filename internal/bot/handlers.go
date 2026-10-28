@@ -25,37 +25,60 @@ func handler(
 	}
 	userID := update.Message.From.ID
 	chatID := update.Message.Chat.ID
+	var sendText string
 
 	switch userText := update.Message.Text; userText {
 	case CommandStart:
 		handleStart(ctx, b, chatID, userID, rep)
 
 	case CommandHelp:
-		sendText := helpIntro + "\n\n" + formatHelp()
+		sendText = helpIntro + "\n\n" + formatHelp()
 
 		sendMessage(ctx, b, chatID, sendText, nil)
 	case CommandPlans:
-		allPlans, err := rep.All()
+		couple, err := rep.GetCoupleByUserID(userID)
+		if err != nil {
+			if errors.Is(err, couples.ErrCoupleNotFound) {
+				sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
+					" чтобы отправить приглашение партнёру или ввести его код."
+			} else {
+				sendText = messagePlansLoadError
+			}
+			sendMessage(ctx, b, chatID, sendText, nil)
+			return
+		}
+		allPlans, err := rep.All(couple.ID)
 		if err != nil {
 			log.Printf("failed to get plans: %v", err)
 
-			sendErr := "Не удалось загрузить планы. Попробуй чуть позже 🙏"
-			sendMessage(ctx, b, chatID, sendErr, nil)
-
+			sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
 			return
 		}
 
 		sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
 
 	case CommandAddPlan:
+		couple, err := rep.GetCoupleByUserID(userID)
+		if err != nil {
+			if errors.Is(err, couples.ErrCoupleNotFound) {
+				sendText = "План можно будет добавить, когда ты создашь пару 💕 Нажми /start," +
+					" чтобы отправить приглашение партнёру или ввести его код."
+			} else {
+				sendText = messageAddPlanLoadError
+			}
+			sendMessage(ctx, b, chatID, sendText, nil)
+			return
+		}
+
 		userConv := Conversation{
 			State: StateWaitingForTitle,
 			NewPlan: plans.NewPlan{
 				Topic: plans.Other,
 			},
+			CoupleID: couple.ID,
 		}
 		conversations.Set(userID, userConv)
-		sendText := "Как назовём ваш план? 💕"
+		sendText = "Как назовём ваш план? 💕"
 		sendMessage(ctx, b, chatID, sendText, nil)
 
 	default:
@@ -83,7 +106,7 @@ func handleStart(
 			keyboard = startKeyboard()
 		} else {
 			log.Printf("failed to get couple by user: %v", err)
-			sendText = "Возникли временные трудности. Попробуй чуть позже 🙏 "
+			sendText = "Возникли временные трудности. Попробуй чуть позже. 🙏"
 		}
 	}
 
@@ -151,12 +174,12 @@ func handleInvitationCode(
 	if err != nil {
 		var sendText string
 		if errors.Is(err, couples.ErrOnlyOneCouplePerUser) {
-			sendText = "Один из вас уже состоит в паре 💕"
+			sendText = "Один из вас уже состоит в паре. 💕"
 		} else if errors.Is(err, couples.ErrInvitationNotFound) {
-			sendText = "Не удалось принять приглашение. Проверь код и попробуй ещё раз 🙏"
+			sendText = "Не удалось принять приглашение. Проверь код и попробуй ещё раз. 🙏"
 		} else {
 			log.Printf("failed to accept invitation: %v", err)
-			sendText = "Возникла техническая ошибка. Попробуй позже 🙏"
+			sendText = "Возникла техническая ошибка. Попробуй позже. 🙏"
 		}
 
 		sendMessage(ctx, b, chatID, sendText, nil)
@@ -199,21 +222,21 @@ func handlePlanConversation(
 	chatID int64,
 ) {
 	userConv, readyToSave := processConversationPlanInput(userConv, userText)
+	var sendText string
 
 	if !readyToSave {
 		conversations.Set(userID, userConv)
-		sendText := "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
-			"если нет, то введите -"
+		sendText = "Если нужно добавить заметку, введите текст заметки следующим сообщением, " +
+			"если нет, то введите -."
 		sendMessage(ctx, b, chatID, sendText, nil)
 		return
 	}
 
-	_, err := rep.Add(userConv.NewPlan)
+	_, err := rep.Add(userConv.NewPlan, userConv.CoupleID)
 	if err != nil {
 		log.Printf("failed to add plan: %v", err)
 
-		sendErr := "Не удалось добавить план. Попробуй чуть позже 🙏"
-		sendMessage(ctx, b, chatID, sendErr, nil)
+		sendMessage(ctx, b, chatID, messageAddPlanLoadError, nil)
 		return
 	}
 	sendMessage(ctx, b, chatID, messagePlanAdded, nil)

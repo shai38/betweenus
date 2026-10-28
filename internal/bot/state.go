@@ -12,8 +12,9 @@ const (
 )
 
 type Conversation struct {
-	State   ConversationState
-	NewPlan plans.NewPlan
+	State    ConversationState
+	NewPlan  plans.NewPlan
+	CoupleID int64
 }
 
 type ConversationStore struct {

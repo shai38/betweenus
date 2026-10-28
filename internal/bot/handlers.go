@@ -15,7 +15,7 @@ import (
 
 func handler(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b messageSender,
 	update *models.Update,
 	rep BotRepository,
 	conversations *ConversationStore,
@@ -70,12 +70,21 @@ func handler(
 			return
 		}
 
+		partnerID, err := couple.PartnerID(userID)
+		if err != nil {
+			log.Printf("failed to get partner id: %v", err)
+
+			sendMessage(ctx, b, chatID, messageAddPlanLoadError, nil)
+			return
+		}
+
 		userConv := Conversation{
 			State: StateWaitingForTitle,
 			NewPlan: plans.NewPlan{
 				Topic: plans.Other,
 			},
-			CoupleID: couple.ID,
+			CoupleID:  couple.ID,
+			PartnerID: partnerID,
 		}
 		conversations.Set(userID, userConv)
 		sendText = "Как назовём ваш план? 💕"
@@ -88,7 +97,7 @@ func handler(
 
 func handleStart(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b messageSender,
 	chatID int64,
 	userID int64,
 	rep BotRepository,
@@ -240,6 +249,10 @@ func handlePlanConversation(
 		return
 	}
 	sendMessage(ctx, b, chatID, messagePlanAdded, nil)
+
+	// Отправление уведомления партнёру о создании плана
+	sendText = "Твой партнёр добавил новый план:" + userConv.NewPlan.Title + ". 💕"
+	sendMessage(ctx, b, userConv.PartnerID, sendText, nil)
 
 	userConv.Clear()
 	conversations.Set(userID, userConv)

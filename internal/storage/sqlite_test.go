@@ -200,6 +200,49 @@ func TestAllPlansAreScopedToCouple(t *testing.T) {
 	}
 }
 
+func TestPlanIsSharedByBothCoupleMembers(t *testing.T) {
+	rep := newTestRepository(t)
+	coupleID := createTestCouple(t, rep)
+
+	planID, err := rep.Add(plans.NewPlan{Title: "Вечер кино"}, coupleID)
+	if err != nil {
+		t.Fatalf("Add() error: %v", err)
+	}
+
+	firstUserCouple, err := rep.GetCoupleByUserID(100)
+	if err != nil {
+		t.Fatalf("GetCoupleByUserID() for first user error: %v", err)
+	}
+	secondUserCouple, err := rep.GetCoupleByUserID(200)
+	if err != nil {
+		t.Fatalf("GetCoupleByUserID() for second user error: %v", err)
+	}
+	if firstUserCouple.ID != secondUserCouple.ID {
+		t.Fatalf("couple IDs = %d and %d, want the same couple", firstUserCouple.ID, secondUserCouple.ID)
+	}
+
+	for _, member := range []struct {
+		name     string
+		coupleID int64
+	}{
+		{name: "first user", coupleID: firstUserCouple.ID},
+		{name: "second user", coupleID: secondUserCouple.ID},
+	} {
+		t.Run(member.name, func(t *testing.T) {
+			got, err := rep.All(member.coupleID)
+			if err != nil {
+				t.Fatalf("All() error: %v", err)
+			}
+			if len(got) != 1 {
+				t.Fatalf("All() returned %d plans, want 1", len(got))
+			}
+			if got[0].ID != planID {
+				t.Errorf("plan ID = %d, want %d", got[0].ID, planID)
+			}
+		})
+	}
+}
+
 func TestMarkDone(t *testing.T) {
 	rep := newTestRepository(t)
 	coupleID := createTestCouple(t, rep)

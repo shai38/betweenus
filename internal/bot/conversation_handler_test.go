@@ -265,9 +265,11 @@ func TestHandlerAddPlanRequiresCouple(t *testing.T) {
 }
 
 func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
-	const coupleID int64 = 789
-	const firstUserID int64 = 123
-	const secondUserID int64 = 321
+	const (
+		coupleID     int64 = 789
+		firstUserID  int64 = 123
+		secondUserID int64 = 321
+	)
 
 	for _, userID := range []int64{firstUserID, secondUserID} {
 		t.Run(fmt.Sprintf("user_%d", userID), func(t *testing.T) {
@@ -313,9 +315,11 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 }
 
 func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
-	const coupleID int64 = 789
-	const firstUserID int64 = 123
-	const secondUserID int64 = 321
+	const (
+		coupleID     int64 = 789
+		firstUserID  int64 = 123
+		secondUserID int64 = 321
+	)
 
 	for _, testCase := range []struct {
 		userID    int64

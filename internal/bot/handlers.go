@@ -325,6 +325,22 @@ func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 
 	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
+
+func planCardText(plan plans.Plan) string {
+	var emoji string
+
+	if plan.Done {
+		emoji = "✅"
+	}
+
+	result := plan.Title + " " + emoji + "\n\n"
+	if plan.Note != "" {
+		result += "Заметка:\n" + plan.Note + "\n"
+	}
+
+	return result
+}
+
 func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
 	keyboardRows := make([][]models.InlineKeyboardButton, 1)
 

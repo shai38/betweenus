@@ -325,6 +325,80 @@ func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 
 	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
+
+func handleOpenPlan(
+	ctx context.Context,
+	b *tgBot.Bot,
+	CallbackQuery *models.CallbackQuery,
+	rep BotRepository,
+) {
+	var sendText string
+	userID := CallbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Не удалось найти твою пару. " +
+				"Напиши /start, чтобы проверить подключение к паре."
+		} else {
+			log.Printf("failed to get couple: %v", err)
+			sendText = messageOpenPlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+	idText, found := strings.CutPrefix(CallbackQuery.Data, planOpenPrefix)
+	if !found {
+		// Callback data не начинается с ожидаемого префикса.
+		log.Printf("failed to cut callbackData: %v", CallbackQuery.Data)
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			messageOpenPlanError,
+		)
+		return
+	}
+
+	planID, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		// После префикса нет корректного ID.
+		log.Printf("failed to ParseInt callback planID: %v", err)
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			messageOpenPlanError,
+		)
+		return
+	}
+
+	plan, err := rep.GetPlanByID(planID, couple.ID)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = "Не удалось найти твой план. " +
+				"Напиши /plans, чтобы проверить, что план еще существует."
+		} else {
+			log.Printf("failed to get plan: %v", err)
+			sendText = messageOpenPlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+
+	editPlanCard(ctx, b, CallbackQuery, plan)
+}
+
 func editPlanCard(
 	ctx context.Context,
 	b *tgBot.Bot,

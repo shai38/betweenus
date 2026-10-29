@@ -287,26 +287,36 @@ func handlePlans(
 		return
 	}
 
-	sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
+	var pk *models.InlineKeyboardMarkup
+	if len(allPlans) == 0 {
+		sendText = ZeroPlansText
+		pk = nil
+	} else {
+		sendText = "💞 Наши планы\n\nНажми на план, чтобы посмотреть заметку и действия.\n"
+		pk = plansKeyboard(allPlans)
+	}
+
+	sendMessage(ctx, b, chatID, sendText, pk)
 }
 
-func formatPlans(plansList []plans.Plan) string {
-	if len(plansList) == 0 {
-		return ZeroPlansText
-	}
+func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
+	keyboardRows := make([][]models.InlineKeyboardButton, len(plansList))
+	for index, plan := range plansList {
+		emoji := "⬜"
 
-	text := "💞 Наши планы\n\n"
-	counter := 1
-	for _, plan := range plansList {
-		text += strconv.Itoa(counter) + ". " + plan.Title + "\n"
-		if plan.Note != "" {
-			text += plan.Note + "\n"
+		if plan.Done {
+			emoji = "✅"
 		}
-		text += "\n"
-		counter++
+
+		button := models.InlineKeyboardButton{
+			Text:         emoji + " " + plan.Title,
+			CallbackData: "plan:open:" + strconv.FormatInt(plan.ID, 10),
+		}
+
+		keyboardRows[index] = []models.InlineKeyboardButton{button}
 	}
 
-	return text
+	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
 
 func sendMessage(

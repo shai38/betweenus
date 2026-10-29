@@ -325,6 +325,36 @@ func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 
 	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
+func editPlanCard(
+	ctx context.Context,
+	b *tgBot.Bot,
+	CallbackQuery *models.CallbackQuery,
+	plan plans.Plan,
+) {
+	var sendText string
+
+	_, err := b.EditMessageText(
+		ctx,
+		&tgBot.EditMessageTextParams{
+			ChatID:      CallbackQuery.From.ID,
+			MessageID:   CallbackQuery.Message.Message.ID,
+			Text:        planCardText(plan),
+			ReplyMarkup: planCardKeyboard(plan),
+		},
+	)
+
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+		sendText = messageOpenPlanError
+	}
+
+	answerCallbackQuery(
+		ctx,
+		b,
+		CallbackQuery,
+		sendText,
+	)
+}
 
 func planCardText(plan plans.Plan) string {
 	var emoji string

@@ -201,8 +201,9 @@ func (r *SQLiteRepository) GetPlanByID(planID int64, coupleID int64) (plans.Plan
 	plan := plans.Plan{}
 
 	err := r.db.QueryRow(
-		`SELECT id, done, title, note, couple_id 
-		WHERE id = ? 
+		`SELECT id, done, title, note, couple_id
+		FROM plans
+		WHERE id = ?
 		AND couple_id = ?`,
 		planID,
 		coupleID,

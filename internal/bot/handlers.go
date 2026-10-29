@@ -33,29 +33,10 @@ func handler(
 
 	case CommandHelp:
 		sendText = helpIntro + "\n\n" + formatHelp()
-
 		sendMessage(ctx, b, chatID, sendText, nil)
+
 	case CommandPlans:
-		couple, err := rep.GetCoupleByUserID(userID)
-		if err != nil {
-			if errors.Is(err, couples.ErrCoupleNotFound) {
-				sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
-					" чтобы отправить приглашение партнёру или ввести его код."
-			} else {
-				sendText = messagePlansLoadError
-			}
-			sendMessage(ctx, b, chatID, sendText, nil)
-			return
-		}
-		allPlans, err := rep.All(couple.ID)
-		if err != nil {
-			log.Printf("failed to get plans: %v", err)
-
-			sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
-			return
-		}
-
-		sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
+		handlePlans(ctx, b, chatID, userID, rep)
 
 	case CommandAddPlan:
 		couple, err := rep.GetCoupleByUserID(userID)
@@ -276,6 +257,37 @@ func startKeyboard() *models.InlineKeyboardMarkup {
 			},
 		},
 	}
+}
+
+func handlePlans(
+	ctx context.Context,
+	b messageSender,
+	chatID int64,
+	userID int64,
+	rep BotRepository,
+) {
+	var sendText string
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
+				" чтобы отправить приглашение партнёру или ввести его код."
+		} else {
+			sendText = messagePlansLoadError
+		}
+		sendMessage(ctx, b, chatID, sendText, nil)
+		return
+	}
+	allPlans, err := rep.All(couple.ID)
+	if err != nil {
+		log.Printf("failed to get plans: %v", err)
+
+		sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
+		return
+	}
+
+	sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
 }
 
 func formatPlans(plansList []plans.Plan) string {

@@ -61,6 +61,14 @@ func (fr *fakeRepository) All(coupleID int64) ([]plans.Plan, error) {
 	return []plans.Plan{}, nil
 }
 
+func (fr *fakeRepository) GetPlanByID(planID int64, coupleID int64) (plans.Plan, error) {
+	if fr.addedPlan.ID != planID || fr.addedPlan.CoupleID != coupleID {
+		return plans.Plan{}, nil
+	}
+
+	return fr.addedPlan, nil
+}
+
 type fakeBotRepository struct {
 	*fakeRepository
 	couples.CoupleRepository

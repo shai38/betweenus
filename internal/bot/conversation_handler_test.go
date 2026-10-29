@@ -76,11 +76,16 @@ func (fr *fakeBotRepository) GetCoupleByUserID(userID int64) (couples.Couple, er
 	return fr.couple, nil
 }
 
-func (fr *fakeRepository) MarkDone(planID int64) error {
-	if fr.addedPlan.ID == planID {
-		fr.addedPlan.Done = true
+func (fr *fakeRepository) SetDone(planID int64, coupleID int64, done bool) error {
+	if fr.addedPlan.ID == planID && fr.addedPlan.CoupleID == coupleID {
+		fr.addedPlan.Done = done
 	} else {
-		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+		return fmt.Errorf(
+			"%w: ID = %v, coupleID = %v",
+			plans.ErrPlanNotFound,
+			planID,
+			coupleID,
+		)
 	}
 
 	return nil

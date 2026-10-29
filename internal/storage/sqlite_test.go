@@ -243,7 +243,7 @@ func TestPlanIsSharedByBothCoupleMembers(t *testing.T) {
 	}
 }
 
-func TestMarkDone(t *testing.T) {
+func TestSetDone(t *testing.T) {
 	rep := newTestRepository(t)
 	coupleID := createTestCouple(t, rep)
 
@@ -257,8 +257,8 @@ func TestMarkDone(t *testing.T) {
 		t.Fatalf("Add() error: %v", err)
 	}
 
-	if err = rep.MarkDone(movieID); err != nil {
-		t.Fatalf("MarkDone() error: %v", err)
+	if err = rep.SetDone(movieID, coupleID, true); err != nil {
+		t.Fatalf("SetDone() error: %v", err)
 	}
 
 	var done bool
@@ -272,6 +272,68 @@ func TestMarkDone(t *testing.T) {
 		t.Fatalf("got done %t, want true", done)
 	}
 
+}
+
+func TestSetDoneOnlyChangesPlansInSameCouple(t *testing.T) {
+	rep := newTestRepository(t)
+	firstCoupleID := createTestCouple(t, rep)
+	secondCoupleID, err := rep.CreateCouple(300, 400)
+	if err != nil {
+		t.Fatalf("CreateCouple() error: %v", err)
+	}
+
+	firstPlanID, err := rep.Add(plans.NewPlan{Title: "Сходить в кино"}, firstCoupleID)
+	if err != nil {
+		t.Fatalf("Add() for first couple error: %v", err)
+	}
+	secondPlanID, err := rep.Add(plans.NewPlan{Title: "Устроить пикник"}, secondCoupleID)
+	if err != nil {
+		t.Fatalf("Add() for second couple error: %v", err)
+	}
+
+	for _, plan := range []struct {
+		id       int64
+		coupleID int64
+	}{
+		{id: firstPlanID, coupleID: firstCoupleID},
+		{id: secondPlanID, coupleID: secondCoupleID},
+	} {
+		if err := rep.SetDone(plan.id, plan.coupleID, true); err != nil {
+			t.Fatalf("SetDone(..., true) error: %v", err)
+		}
+		if err := rep.SetDone(plan.id, plan.coupleID, false); err != nil {
+			t.Fatalf("SetDone(..., false) error: %v", err)
+		}
+	}
+
+	if err := rep.SetDone(firstPlanID, secondCoupleID, true); !errors.Is(err, plans.ErrPlanNotFound) {
+		t.Errorf("SetDone() for another couple's plan error = %v, want %v", err, plans.ErrPlanNotFound)
+	}
+	if err := rep.SetDone(secondPlanID, firstCoupleID, true); !errors.Is(err, plans.ErrPlanNotFound) {
+		t.Errorf("SetDone() for another couple's plan error = %v, want %v", err, plans.ErrPlanNotFound)
+	}
+
+	for _, couple := range []struct {
+		id     int64
+		planID int64
+	}{
+		{id: firstCoupleID, planID: firstPlanID},
+		{id: secondCoupleID, planID: secondPlanID},
+	} {
+		got, err := rep.All(couple.id)
+		if err != nil {
+			t.Fatalf("All() error: %v", err)
+		}
+		if len(got) != 1 {
+			t.Fatalf("All() returned %d plans, want 1", len(got))
+		}
+		if got[0].ID != couple.planID {
+			t.Errorf("plan ID = %d, want %d", got[0].ID, couple.planID)
+		}
+		if got[0].Done {
+			t.Errorf("plan %d done = true after rejected update, want false", couple.planID)
+		}
+	}
 }
 
 func TestDeletePlan(t *testing.T) {

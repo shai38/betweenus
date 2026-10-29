@@ -170,13 +170,16 @@ func (r *SQLiteRepository) All(coupleID int64) ([]plans.Plan, error) {
 	return result, nil
 }
 
-// Отмечает план выполненным
-func (r *SQLiteRepository) MarkDone(planID int64) error {
+// SetDone меняет статус плана - отмечает выполненным, также может вернуть его в активные.
+func (r *SQLiteRepository) SetDone(planID int64, coupleID int64, done bool) error {
 	result, err := r.db.Exec(
 		`UPDATE plans 
-		SET done = 1
-		WHERE id = ?`,
+		SET done = ?
+		WHERE id = ?
+		AND couple_id = ?`,
+		done,
 		planID,
+		coupleID,
 	)
 	if err != nil {
 		return err
@@ -188,7 +191,7 @@ func (r *SQLiteRepository) MarkDone(planID int64) error {
 	}
 
 	if rowsCount == 0 {
-		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+		return fmt.Errorf("%w: ID = %v, coupleID = %v", plans.ErrPlanNotFound, planID, coupleID)
 	}
 
 	return nil

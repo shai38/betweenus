@@ -43,7 +43,7 @@ func New(token string, rep BotRepository) (*Bot, error) {
 			"create_invitation",
 			tgBot.MatchTypeExact,
 			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
-				answerCallbackQuery(ctx, b, update.CallbackQuery)
+				answerCallbackQuery(ctx, b, update.CallbackQuery, "")
 				var sendText string
 
 				inv, err := invService.CreateInvitation(update.CallbackQuery.From.ID)
@@ -73,7 +73,7 @@ func New(token string, rep BotRepository) (*Bot, error) {
 			"enter_invitation_code",
 			tgBot.MatchTypeExact,
 			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
-				answerCallbackQuery(ctx, b, update.CallbackQuery)
+				answerCallbackQuery(ctx, b, update.CallbackQuery, "")
 				userID := update.CallbackQuery.From.ID
 				var sendText string
 
@@ -117,12 +117,18 @@ func New(token string, rep BotRepository) (*Bot, error) {
 	return betweenUsBot, nil
 }
 
-func answerCallbackQuery(ctx context.Context, b *tgBot.Bot, CallbackQuery *models.CallbackQuery) {
+func answerCallbackQuery(
+	ctx context.Context,
+	b *tgBot.Bot,
+	CallbackQuery *models.CallbackQuery,
+	text string,
+) {
 	if CallbackQuery != nil {
 		_, err := b.AnswerCallbackQuery(
 			ctx,
 			&tgBot.AnswerCallbackQueryParams{
 				CallbackQueryID: CallbackQuery.ID,
+				Text:            text,
 			},
 		)
 		if err != nil {

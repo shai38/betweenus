@@ -13,6 +13,13 @@ import (
 	"github.com/shai38/betweenus/internal/plans"
 )
 
+const (
+	planOpenPrefix      = "plan:open:"
+	planSetActivePrefix = "plan:active:"
+	planSetDonePrefix   = "plan:done:"
+	backToPlans         = "back_to_plans"
+)
+
 func handler(
 	ctx context.Context,
 	b messageSender,
@@ -315,6 +322,30 @@ func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 
 		keyboardRows[index] = []models.InlineKeyboardButton{button}
 	}
+
+	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
+}
+func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
+	keyboardRows := make([][]models.InlineKeyboardButton, 1)
+
+	var button models.InlineKeyboardButton
+
+	if plan.Done {
+		button = models.InlineKeyboardButton{
+			Text:         "↩️ Вернуть в активные",
+			CallbackData: planSetActivePrefix + strconv.FormatInt(plan.ID, 10),
+		}
+	} else {
+		button = models.InlineKeyboardButton{
+			Text:         "✅ Выполнить",
+			CallbackData: planSetDonePrefix + strconv.FormatInt(plan.ID, 10),
+		}
+	}
+	backbutton := models.InlineKeyboardButton{
+		Text:         "← К списку",
+		CallbackData: backToPlans,
+	}
+	keyboardRows[0] = []models.InlineKeyboardButton{button, backbutton}
 
 	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }

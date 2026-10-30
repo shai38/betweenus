@@ -15,6 +15,7 @@ import (
 type sentMessage struct {
 	chatID any
 	text   string
+	markup models.ReplyMarkup
 }
 
 type fakeMessageSender struct {
@@ -30,6 +31,7 @@ func (fm *fakeMessageSender) SendMessage(
 		fm.messages, sentMessage{
 			chatID: params.ChatID,
 			text:   params.Text,
+			markup: params.ReplyMarkup,
 		},
 	)
 	return nil, nil
@@ -289,6 +291,7 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 			baseRep := &fakeRepository{
 				addedPlan: plans.Plan{
 					ID:       1,
+					Done:     true,
 					NewPlan:  plans.NewPlan{Title: "Вечер кино"},
 					CoupleID: coupleID,
 				},
@@ -325,6 +328,13 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 			wantText, _ := buildPlansMessage([]plans.Plan{baseRep.addedPlan})
 			if sender.messages[0].text != wantText {
 				t.Errorf("message text = %q, want shared couple plan list %q", sender.messages[0].text, wantText)
+			}
+			keyboard, ok := sender.messages[0].markup.(*models.InlineKeyboardMarkup)
+			if !ok {
+				t.Fatalf("keyboard type = %T, want *models.InlineKeyboardMarkup", sender.messages[0].markup)
+			}
+			if got := keyboard.InlineKeyboard[0][0].Text; got != "✅ Вечер кино" {
+				t.Errorf("shared plan status = %q, want completed plan label", got)
 			}
 		})
 	}

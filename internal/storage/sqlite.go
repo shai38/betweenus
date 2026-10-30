@@ -226,8 +226,14 @@ func (r *SQLiteRepository) GetPlanByID(planID int64, coupleID int64) (plans.Plan
 }
 
 // Удаляет план
-func (r *SQLiteRepository) DeletePlan(planID int64) error {
-	result, err := r.db.Exec(`DELETE FROM plans WHERE id = ?`, planID)
+func (r *SQLiteRepository) DeletePlan(planID int64, coupleID int64) error {
+	result, err := r.db.Exec(
+		`DELETE FROM plans
+		WHERE id = ?
+		AND couple_id = ?`,
+		planID,
+		coupleID,
+	)
 
 	if err != nil {
 		return err
@@ -239,7 +245,7 @@ func (r *SQLiteRepository) DeletePlan(planID int64) error {
 	}
 
 	if rowsCount == 0 {
-		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+		return fmt.Errorf("%w: ID = %v, coupelID = %v", plans.ErrPlanNotFound, planID, coupleID)
 	}
 
 	return nil

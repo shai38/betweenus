@@ -309,7 +309,7 @@ func handlePlans(
 func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 	keyboardRows := make([][]models.InlineKeyboardButton, len(plansList))
 	for index, plan := range plansList {
-		emoji := "⬜"
+		emoji := ""
 
 		if plan.Done {
 			emoji = "✅"

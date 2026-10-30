@@ -293,17 +293,22 @@ func handlePlans(
 		sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
 		return
 	}
+	sendText, pk := buildPlansMessage(allPlans)
+	sendMessage(ctx, b, chatID, sendText, pk)
+}
 
+func buildPlansMessage(plansList []plans.Plan) (string, models.ReplyMarkup) {
+	var sendText string
 	var pk *models.InlineKeyboardMarkup
-	if len(allPlans) == 0 {
+
+	if len(plansList) == 0 {
 		sendText = ZeroPlansText
 		pk = nil
 	} else {
 		sendText = "💞 Наши планы\n\nНажми на план, чтобы посмотреть заметку и действия.\n"
-		pk = plansKeyboard(allPlans)
+		pk = plansKeyboard(plansList)
 	}
-
-	sendMessage(ctx, b, chatID, sendText, pk)
+	return sendText, pk
 }
 
 func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {

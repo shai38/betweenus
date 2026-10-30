@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	planOpenPrefix      = "plan:open:"
-	planSetActivePrefix = "plan:active:"
-	planSetDonePrefix   = "plan:done:"
-	backToPlans         = "back_to_plans"
+	planOpenPrefix          = "plan:open:"
+	planSetActivePrefix     = "plan:active:"
+	planSetDonePrefix       = "plan:done:"
+	backToPlansCallbackData = "back_to_plans"
 )
 
 func handler(
@@ -571,7 +571,7 @@ func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
 	}
 	backbutton := models.InlineKeyboardButton{
 		Text:         "← К списку",
-		CallbackData: backToPlans,
+		CallbackData: backToPlansCallbackData,
 	}
 	keyboardRows[0] = []models.InlineKeyboardButton{button}
 	keyboardRows[1] = []models.InlineKeyboardButton{backbutton}

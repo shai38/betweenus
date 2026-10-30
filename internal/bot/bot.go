@@ -110,6 +110,20 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				handleOpenPlan(ctx, b, update.CallbackQuery, rep)
 			},
 		),
+		tgBot.WithCallbackQueryDataHandler(
+			planSetActivePrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleSetPlanStatus(ctx, b, update.CallbackQuery, rep, false)
+			},
+		),
+		tgBot.WithCallbackQueryDataHandler(
+			planSetDonePrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleSetPlanStatus(ctx, b, update.CallbackQuery, rep, true)
+			},
+		),
 	)
 	if err != nil {
 		return nil, err

@@ -430,9 +430,104 @@ func editPlanCard(
 	return err
 }
 
+func handleSetPlanStatus(
+	ctx context.Context,
+	b *tgBot.Bot,
+	CallbackQuery *models.CallbackQuery,
+	rep BotRepository,
+	done bool,
+) {
+	var sendText string
+	userID := CallbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Не удалось найти твою пару. " +
+				"Напиши /start, чтобы проверить подключение к паре."
+		} else {
+			log.Printf("failed to get couple: %v", err)
+			sendText = messageSetDoneError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+	idText, found := strings.CutPrefix(CallbackQuery.Data, planSetActivePrefix)
+	if !found {
+		idText, found = strings.CutPrefix(CallbackQuery.Data, planSetDonePrefix)
+		if !found {
+			// Callback data не начинается с ожидаемого префикса.
+			log.Printf("failed to cut callbackData: %v", CallbackQuery.Data)
+			answerCallbackQuery(
+				ctx,
+				b,
+				CallbackQuery,
+				messageSetDoneError,
+			)
+			return
+		}
+	}
+
+	planID, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		// После префикса нет корректного ID.
+		log.Printf("failed to ParseInt callback planID: %v", err)
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			messageSetDoneError,
+		)
+		return
+	}
+
+	plan, err := rep.GetPlanByID(planID, couple.ID)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = "Не удалось найти твой план. " +
+				"Напиши /plans, чтобы проверить, что план еще существует."
+		} else {
+			log.Printf("failed to get plan: %v", err)
+			sendText = messageSetDoneError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+
+	err = rep.SetDone(plan.ID, couple.ID, done)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = "Не удалось найти твой план. " +
+				"Напиши /plans, чтобы проверить, что план еще существует."
+		} else {
+			log.Printf("failed to set done: %v", err)
+			sendText = messageSetDoneError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+	plan.Done = done
+	err = editPlanCard(ctx, b, CallbackQuery, plan)
+
 	if err != nil {
 		log.Printf("failed to edit message text: %v", err)
-		sendText = messageOpenPlanError
+		sendText = "Статус плана изменён, но карточку не удалось обновить. " +
+			"Напиши /plans и открой план ещё раз."
 	}
 
 	answerCallbackQuery(

@@ -543,6 +543,69 @@ func handleSetPlanStatus(
 	)
 }
 
+func handleBackToPlans(
+	ctx context.Context,
+	b *tgBot.Bot,
+	callbackQuery *models.CallbackQuery,
+	rep BotRepository,
+) {
+	var sendText string
+	userID := callbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
+				" чтобы отправить приглашение партнёру или ввести его код."
+		} else {
+			sendText = messagePlansLoadError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			sendText,
+		)
+		return
+	}
+	allPlans, err := rep.All(couple.ID)
+	if err != nil {
+		log.Printf("failed to get plans: %v", err)
+
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messagePlansLoadError,
+		)
+		return
+	}
+	sendText, pk := buildPlansMessage(allPlans)
+
+	_, err = b.EditMessageText(
+		ctx,
+		&tgBot.EditMessageTextParams{
+			ChatID:      callbackQuery.From.ID,
+			MessageID:   callbackQuery.Message.Message.ID,
+			Text:        sendText,
+			ReplyMarkup: pk,
+		},
+	)
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messagePlansLoadError,
+		)
+		return
+	}
+
+	answerCallbackQuery(ctx, b, callbackQuery, "")
+}
+
 func planCardText(plan plans.Plan) string {
 	var emoji string
 

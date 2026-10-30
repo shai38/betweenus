@@ -124,6 +124,13 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				handleSetPlanStatus(ctx, b, update.CallbackQuery, rep, true)
 			},
 		),
+		tgBot.WithCallbackQueryDataHandler(
+			backToPlansCallbackData,
+			tgBot.MatchTypeExact,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleBackToPlans(ctx, b, update.CallbackQuery, rep)
+			},
+		),
 	)
 	if err != nil {
 		return nil, err

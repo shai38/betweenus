@@ -29,3 +29,4 @@ const coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕
 const messagePlansLoadError = "Не удалось загрузить планы. Попробуй чуть позже. 🙏"
 const messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже. 🙏"
 const messageOpenPlanError = "Не удалось открыть план. Попробуй чуть позже. 🙏"
+const messageSetDoneError = "Не удалось сменить статус плана. Попробуй чуть позже. 🙏"

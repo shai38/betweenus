@@ -11,6 +11,18 @@ import (
 	"github.com/shai38/betweenus/internal/plans"
 )
 
+type callbackBot interface {
+	EditMessageText(
+		context.Context,
+		*tgBot.EditMessageTextParams,
+	) (*models.Message, error)
+
+	AnswerCallbackQuery(
+		context.Context,
+		*tgBot.AnswerCallbackQueryParams,
+	) (bool, error)
+}
+
 type Bot struct {
 	TgBot         *tgBot.Bot
 	Rep           plans.Repository
@@ -43,7 +55,7 @@ func New(token string, rep BotRepository) (*Bot, error) {
 			"create_invitation",
 			tgBot.MatchTypeExact,
 			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
-				answerCallbackQuery(ctx, b, update.CallbackQuery)
+				answerCallbackQuery(ctx, b, update.CallbackQuery, "")
 				var sendText string
 
 				inv, err := invService.CreateInvitation(update.CallbackQuery.From.ID)
@@ -73,7 +85,7 @@ func New(token string, rep BotRepository) (*Bot, error) {
 			"enter_invitation_code",
 			tgBot.MatchTypeExact,
 			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
-				answerCallbackQuery(ctx, b, update.CallbackQuery)
+				answerCallbackQuery(ctx, b, update.CallbackQuery, "")
 				userID := update.CallbackQuery.From.ID
 				var sendText string
 
@@ -103,6 +115,34 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				)
 			},
 		),
+		tgBot.WithCallbackQueryDataHandler(
+			planOpenPrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleOpenPlan(ctx, b, update.CallbackQuery, rep)
+			},
+		),
+		tgBot.WithCallbackQueryDataHandler(
+			planSetActivePrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleSetPlanStatus(ctx, b, update.CallbackQuery, rep, false)
+			},
+		),
+		tgBot.WithCallbackQueryDataHandler(
+			planSetDonePrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleSetPlanStatus(ctx, b, update.CallbackQuery, rep, true)
+			},
+		),
+		tgBot.WithCallbackQueryDataHandler(
+			backToPlansCallbackData,
+			tgBot.MatchTypeExact,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleBackToPlans(ctx, b, update.CallbackQuery, rep)
+			},
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -117,12 +157,18 @@ func New(token string, rep BotRepository) (*Bot, error) {
 	return betweenUsBot, nil
 }
 
-func answerCallbackQuery(ctx context.Context, b *tgBot.Bot, CallbackQuery *models.CallbackQuery) {
+func answerCallbackQuery(
+	ctx context.Context,
+	b callbackBot,
+	CallbackQuery *models.CallbackQuery,
+	text string,
+) {
 	if CallbackQuery != nil {
 		_, err := b.AnswerCallbackQuery(
 			ctx,
 			&tgBot.AnswerCallbackQueryParams{
 				CallbackQueryID: CallbackQuery.ID,
+				Text:            text,
 			},
 		)
 		if err != nil {

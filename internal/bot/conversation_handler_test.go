@@ -15,6 +15,7 @@ import (
 type sentMessage struct {
 	chatID any
 	text   string
+	markup models.ReplyMarkup
 }
 
 type fakeMessageSender struct {
@@ -30,6 +31,7 @@ func (fm *fakeMessageSender) SendMessage(
 		fm.messages, sentMessage{
 			chatID: params.ChatID,
 			text:   params.Text,
+			markup: params.ReplyMarkup,
 		},
 	)
 	return nil, nil
@@ -59,6 +61,14 @@ func (fr *fakeRepository) All(coupleID int64) ([]plans.Plan, error) {
 	}
 
 	return []plans.Plan{}, nil
+}
+
+func (fr *fakeRepository) GetPlanByID(planID int64, coupleID int64) (plans.Plan, error) {
+	if fr.addedPlan.ID != planID || fr.addedPlan.CoupleID != coupleID {
+		return plans.Plan{}, nil
+	}
+
+	return fr.addedPlan, nil
 }
 
 type fakeBotRepository struct {
@@ -195,9 +205,9 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 }
 
 func TestHandlerPlansRequiresCouple(t *testing.T) {
-	baseRepo := &fakeRepository{}
-	repo := &fakeBotRepository{
-		fakeRepository: baseRepo,
+	baseRep := &fakeRepository{}
+	rep := &fakeBotRepository{
+		fakeRepository: baseRep,
 		coupleErr:      couples.ErrCoupleNotFound,
 	}
 	sender := &fakeMessageSender{}
@@ -218,12 +228,12 @@ func TestHandlerPlansRequiresCouple(t *testing.T) {
 				Text: CommandPlans,
 			},
 		},
-		repo,
+		rep,
 		conversations,
 	)
 
-	if baseRepo.allCalls != 0 {
-		t.Errorf("All() calls = %d, want 0 for a user without a couple", baseRepo.allCalls)
+	if baseRep.allCalls != 0 {
+		t.Errorf("All() calls = %d, want 0 for a user without a couple", baseRep.allCalls)
 	}
 	if len(sender.messages) != 1 || sender.messages[0].chatID != chatID {
 		t.Fatalf("messages = %+v, want one response to chat %d", sender.messages, chatID)
@@ -231,9 +241,9 @@ func TestHandlerPlansRequiresCouple(t *testing.T) {
 }
 
 func TestHandlerAddPlanRequiresCouple(t *testing.T) {
-	baseRepo := &fakeRepository{}
-	repo := &fakeBotRepository{
-		fakeRepository: baseRepo,
+	baseRep := &fakeRepository{}
+	rep := &fakeBotRepository{
+		fakeRepository: baseRep,
 		coupleErr:      couples.ErrCoupleNotFound,
 	}
 	sender := &fakeMessageSender{}
@@ -254,12 +264,12 @@ func TestHandlerAddPlanRequiresCouple(t *testing.T) {
 				Text: CommandAddPlan,
 			},
 		},
-		repo,
+		rep,
 		conversations,
 	)
 
-	if baseRepo.addCalls != 0 {
-		t.Errorf("Add() calls = %d, want 0 for a user without a couple", baseRepo.addCalls)
+	if baseRep.addCalls != 0 {
+		t.Errorf("Add() calls = %d, want 0 for a user without a couple", baseRep.addCalls)
 	}
 	if _, ok := conversations.Get(userID); ok {
 		t.Error("conversation was created for a user without a couple")
@@ -278,15 +288,16 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 
 	for _, userID := range []int64{firstUserID, secondUserID} {
 		t.Run(fmt.Sprintf("user_%d", userID), func(t *testing.T) {
-			baseRepo := &fakeRepository{
+			baseRep := &fakeRepository{
 				addedPlan: plans.Plan{
 					ID:       1,
+					Done:     true,
 					NewPlan:  plans.NewPlan{Title: "Вечер кино"},
 					CoupleID: coupleID,
 				},
 			}
-			repo := &fakeBotRepository{
-				fakeRepository: baseRepo,
+			rep := &fakeBotRepository{
+				fakeRepository: baseRep,
 				couple: couples.Couple{
 					ID:           coupleID,
 					FirstUserID:  firstUserID,
@@ -304,16 +315,26 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 						Text: CommandPlans,
 					},
 				},
-				repo,
+				rep,
 				NewConversationStore(),
 			)
 
-			if baseRepo.allCalls != 1 {
-				t.Errorf("All() calls = %d, want 1", baseRepo.allCalls)
+			if baseRep.allCalls != 1 {
+				t.Errorf("All() calls = %d, want 1", baseRep.allCalls)
 			}
-			if len(sender.messages) != 1 ||
-				sender.messages[0].text != formatPlans([]plans.Plan{baseRepo.addedPlan}) {
-				t.Errorf("messages = %+v, want shared couple plan list", sender.messages)
+			if len(sender.messages) != 1 {
+				t.Fatalf("messages = %+v, want one plans response", sender.messages)
+			}
+			wantText, _ := buildPlansMessage([]plans.Plan{baseRep.addedPlan})
+			if sender.messages[0].text != wantText {
+				t.Errorf("message text = %q, want shared couple plan list %q", sender.messages[0].text, wantText)
+			}
+			keyboard, ok := sender.messages[0].markup.(*models.InlineKeyboardMarkup)
+			if !ok {
+				t.Fatalf("keyboard type = %T, want *models.InlineKeyboardMarkup", sender.messages[0].markup)
+			}
+			if got := keyboard.InlineKeyboard[0][0].Text; got != "✅ Вечер кино" {
+				t.Errorf("shared plan status = %q, want completed plan label", got)
 			}
 		})
 	}
@@ -334,7 +355,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 		{userID: secondUserID, partnerID: firstUserID},
 	} {
 		t.Run(fmt.Sprintf("user_%d", testCase.userID), func(t *testing.T) {
-			repo := &fakeBotRepository{
+			rep := &fakeBotRepository{
 				fakeRepository: &fakeRepository{},
 				couple: couples.Couple{
 					ID:           coupleID,
@@ -355,7 +376,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 						Text: CommandAddPlan,
 					},
 				},
-				repo,
+				rep,
 				conversations,
 			)
 
@@ -376,7 +397,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 			handleConversation(
 				context.Background(),
 				sender,
-				repo,
+				rep,
 				conversations,
 				"Сходить в кино",
 				testCase.userID,
@@ -385,17 +406,17 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 			handleConversation(
 				context.Background(),
 				sender,
-				repo,
+				rep,
 				conversations,
 				"-",
 				testCase.userID,
 				testCase.userID,
 			)
 
-			if repo.addedPlan.Title != "Сходить в кино" || repo.addedPlan.CoupleID != coupleID {
+			if rep.addedPlan.Title != "Сходить в кино" || rep.addedPlan.CoupleID != coupleID {
 				t.Errorf(
 					"added plan = %+v, want title and couple ID %q/%d",
-					repo.addedPlan,
+					rep.addedPlan,
 					"Сходить в кино",
 					coupleID,
 				)

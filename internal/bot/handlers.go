@@ -13,6 +13,13 @@ import (
 	"github.com/shai38/betweenus/internal/plans"
 )
 
+const (
+	planOpenPrefix          = "plan:open:"
+	planSetActivePrefix     = "plan:active:"
+	planSetDonePrefix       = "plan:done:"
+	backToPlansCallbackData = "back_to_plans"
+)
+
 func handler(
 	ctx context.Context,
 	b messageSender,
@@ -33,29 +40,10 @@ func handler(
 
 	case CommandHelp:
 		sendText = helpIntro + "\n\n" + formatHelp()
-
 		sendMessage(ctx, b, chatID, sendText, nil)
+
 	case CommandPlans:
-		couple, err := rep.GetCoupleByUserID(userID)
-		if err != nil {
-			if errors.Is(err, couples.ErrCoupleNotFound) {
-				sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
-					" чтобы отправить приглашение партнёру или ввести его код."
-			} else {
-				sendText = messagePlansLoadError
-			}
-			sendMessage(ctx, b, chatID, sendText, nil)
-			return
-		}
-		allPlans, err := rep.All(couple.ID)
-		if err != nil {
-			log.Printf("failed to get plans: %v", err)
-
-			sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
-			return
-		}
-
-		sendMessage(ctx, b, chatID, formatPlans(allPlans), nil)
+		handlePlans(ctx, b, chatID, userID, rep)
 
 	case CommandAddPlan:
 		couple, err := rep.GetCoupleByUserID(userID)
@@ -278,23 +266,385 @@ func startKeyboard() *models.InlineKeyboardMarkup {
 	}
 }
 
-func formatPlans(plansList []plans.Plan) string {
-	if len(plansList) == 0 {
-		return ZeroPlansText
-	}
+func handlePlans(
+	ctx context.Context,
+	b messageSender,
+	chatID int64,
+	userID int64,
+	rep BotRepository,
+) {
+	var sendText string
 
-	text := "💞 Наши планы\n\n"
-	counter := 1
-	for _, plan := range plansList {
-		text += strconv.Itoa(counter) + ". " + plan.Title + "\n"
-		if plan.Note != "" {
-			text += plan.Note + "\n"
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
+				" чтобы отправить приглашение партнёру или ввести его код."
+		} else {
+			sendText = messagePlansLoadError
 		}
-		text += "\n"
-		counter++
+		sendMessage(ctx, b, chatID, sendText, nil)
+		return
+	}
+	allPlans, err := rep.All(couple.ID)
+	if err != nil {
+		log.Printf("failed to get plans: %v", err)
+
+		sendMessage(ctx, b, chatID, messagePlansLoadError, nil)
+		return
+	}
+	sendText, pk := buildPlansMessage(allPlans)
+	sendMessage(ctx, b, chatID, sendText, pk)
+}
+
+func buildPlansMessage(plansList []plans.Plan) (string, models.ReplyMarkup) {
+	var sendText string
+	var pk *models.InlineKeyboardMarkup
+
+	if len(plansList) == 0 {
+		sendText = ZeroPlansText
+		pk = nil
+	} else {
+		sendText = "💞 Наши планы\n\nНажми на план, чтобы посмотреть заметку и действия.\n"
+		pk = plansKeyboard(plansList)
+	}
+	return sendText, pk
+}
+
+func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
+	keyboardRows := make([][]models.InlineKeyboardButton, len(plansList))
+	for index, plan := range plansList {
+		emoji := ""
+
+		if plan.Done {
+			emoji = "✅"
+		}
+
+		button := models.InlineKeyboardButton{
+			Text:         emoji + " " + plan.Title,
+			CallbackData: "plan:open:" + strconv.FormatInt(plan.ID, 10),
+		}
+
+		keyboardRows[index] = []models.InlineKeyboardButton{button}
 	}
 
-	return text
+	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
+}
+
+func handleOpenPlan(
+	ctx context.Context,
+	b callbackBot,
+	CallbackQuery *models.CallbackQuery,
+	rep BotRepository,
+) {
+	var sendText string
+	userID := CallbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Не удалось найти твою пару. " +
+				"Напиши /start, чтобы проверить подключение к паре."
+		} else {
+			log.Printf("failed to get couple: %v", err)
+			sendText = messageOpenPlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+	idText, found := strings.CutPrefix(CallbackQuery.Data, planOpenPrefix)
+	if !found {
+		// Callback data не начинается с ожидаемого префикса.
+		log.Printf("failed to cut callbackData: %v", CallbackQuery.Data)
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			messageOpenPlanError,
+		)
+		return
+	}
+
+	planID, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		// После префикса нет корректного ID.
+		log.Printf("failed to ParseInt callback planID: %v", err)
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			messageOpenPlanError,
+		)
+		return
+	}
+
+	plan, err := rep.GetPlanByID(planID, couple.ID)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = "Не удалось найти твой план. " +
+				"Напиши /plans, чтобы проверить, что план еще существует."
+		} else {
+			log.Printf("failed to get plan: %v", err)
+			sendText = messageOpenPlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+
+	err = editPlanCard(ctx, b, CallbackQuery, plan)
+
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+		sendText = messageOpenPlanError
+	}
+
+	answerCallbackQuery(
+		ctx,
+		b,
+		CallbackQuery,
+		sendText,
+	)
+}
+
+func editPlanCard(
+	ctx context.Context,
+	b callbackBot,
+	CallbackQuery *models.CallbackQuery,
+	plan plans.Plan,
+) error {
+	_, err := b.EditMessageText(
+		ctx,
+		&tgBot.EditMessageTextParams{
+			ChatID:      CallbackQuery.From.ID,
+			MessageID:   CallbackQuery.Message.Message.ID,
+			Text:        planCardText(plan),
+			ReplyMarkup: planCardKeyboard(plan),
+		},
+	)
+
+	return err
+}
+
+func handleSetPlanStatus(
+	ctx context.Context,
+	b callbackBot,
+	CallbackQuery *models.CallbackQuery,
+	rep BotRepository,
+	done bool,
+) {
+	var sendText string
+	userID := CallbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Не удалось найти твою пару. " +
+				"Напиши /start, чтобы проверить подключение к паре."
+		} else {
+			log.Printf("failed to get couple: %v", err)
+			sendText = messageSetDoneError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+	idText, found := strings.CutPrefix(CallbackQuery.Data, planSetActivePrefix)
+	if !found {
+		idText, found = strings.CutPrefix(CallbackQuery.Data, planSetDonePrefix)
+		if !found {
+			// Callback data не начинается с ожидаемого префикса.
+			log.Printf("failed to cut callbackData: %v", CallbackQuery.Data)
+			answerCallbackQuery(
+				ctx,
+				b,
+				CallbackQuery,
+				messageSetDoneError,
+			)
+			return
+		}
+	}
+
+	planID, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		// После префикса нет корректного ID.
+		log.Printf("failed to ParseInt callback planID: %v", err)
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			messageSetDoneError,
+		)
+		return
+	}
+
+	plan, err := rep.GetPlanByID(planID, couple.ID)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = "Не удалось найти твой план. " +
+				"Напиши /plans, чтобы проверить, что план еще существует."
+		} else {
+			log.Printf("failed to get plan: %v", err)
+			sendText = messageSetDoneError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+
+	err = rep.SetDone(plan.ID, couple.ID, done)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = "Не удалось найти твой план. " +
+				"Напиши /plans, чтобы проверить, что план еще существует."
+		} else {
+			log.Printf("failed to set done: %v", err)
+			sendText = messageSetDoneError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			CallbackQuery,
+			sendText,
+		)
+		return
+	}
+	plan.Done = done
+	err = editPlanCard(ctx, b, CallbackQuery, plan)
+
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+		sendText = "Статус плана изменён, но карточку не удалось обновить. " +
+			"Напиши /plans и открой план ещё раз."
+	}
+
+	answerCallbackQuery(
+		ctx,
+		b,
+		CallbackQuery,
+		sendText,
+	)
+}
+
+func handleBackToPlans(
+	ctx context.Context,
+	b callbackBot,
+	callbackQuery *models.CallbackQuery,
+	rep BotRepository,
+) {
+	var sendText string
+	userID := callbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = "Список планов появится, когда ты создашь пару 💕 Нажми /start," +
+				" чтобы отправить приглашение партнёру или ввести его код."
+		} else {
+			sendText = messagePlansLoadError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			sendText,
+		)
+		return
+	}
+	allPlans, err := rep.All(couple.ID)
+	if err != nil {
+		log.Printf("failed to get plans: %v", err)
+
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messagePlansLoadError,
+		)
+		return
+	}
+	sendText, pk := buildPlansMessage(allPlans)
+
+	_, err = b.EditMessageText(
+		ctx,
+		&tgBot.EditMessageTextParams{
+			ChatID:      callbackQuery.From.ID,
+			MessageID:   callbackQuery.Message.Message.ID,
+			Text:        sendText,
+			ReplyMarkup: pk,
+		},
+	)
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messagePlansLoadError,
+		)
+		return
+	}
+
+	answerCallbackQuery(ctx, b, callbackQuery, "")
+}
+
+func planCardText(plan plans.Plan) string {
+	var emoji string
+
+	if plan.Done {
+		emoji = "✅"
+	}
+
+	result := plan.Title + " " + emoji + "\n\n"
+	if plan.Note != "" {
+		result += "Заметка:\n" + plan.Note + "\n"
+	}
+
+	return result
+}
+
+func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
+	keyboardRows := make([][]models.InlineKeyboardButton, 2)
+
+	var button models.InlineKeyboardButton
+
+	if plan.Done {
+		button = models.InlineKeyboardButton{
+			Text:         "↩️ Вернуть в активные",
+			CallbackData: planSetActivePrefix + strconv.FormatInt(plan.ID, 10),
+		}
+	} else {
+		button = models.InlineKeyboardButton{
+			Text:         "✅ Выполнить",
+			CallbackData: planSetDonePrefix + strconv.FormatInt(plan.ID, 10),
+		}
+	}
+	backbutton := models.InlineKeyboardButton{
+		Text:         "← К списку",
+		CallbackData: backToPlansCallbackData,
+	}
+	keyboardRows[0] = []models.InlineKeyboardButton{button}
+	keyboardRows[1] = []models.InlineKeyboardButton{backbutton}
+
+	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
 
 func sendMessage(

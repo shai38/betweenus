@@ -197,6 +197,34 @@ func (r *SQLiteRepository) SetDone(planID int64, coupleID int64, done bool) erro
 	return nil
 }
 
+func (r *SQLiteRepository) GetPlanByID(planID int64, coupleID int64) (plans.Plan, error) {
+	plan := plans.Plan{}
+
+	err := r.db.QueryRow(
+		`SELECT id, done, title, note, couple_id
+		FROM plans
+		WHERE id = ?
+		AND couple_id = ?`,
+		planID,
+		coupleID,
+	).Scan(
+		&plan.ID,
+		&plan.Done,
+		&plan.Title,
+		&plan.Note,
+		&plan.CoupleID,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = plans.ErrPlanNotFound
+		}
+		return plans.Plan{}, err
+	}
+
+	return plan, nil
+}
+
 // Удаляет план
 func (r *SQLiteRepository) DeletePlan(planID int64) error {
 	result, err := r.db.Exec(`DELETE FROM plans WHERE id = ?`, planID)

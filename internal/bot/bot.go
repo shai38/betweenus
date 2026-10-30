@@ -11,6 +11,18 @@ import (
 	"github.com/shai38/betweenus/internal/plans"
 )
 
+type callbackBot interface {
+	EditMessageText(
+		context.Context,
+		*tgBot.EditMessageTextParams,
+	) (*models.Message, error)
+
+	AnswerCallbackQuery(
+		context.Context,
+		*tgBot.AnswerCallbackQueryParams,
+	) (bool, error)
+}
+
 type Bot struct {
 	TgBot         *tgBot.Bot
 	Rep           plans.Repository
@@ -147,7 +159,7 @@ func New(token string, rep BotRepository) (*Bot, error) {
 
 func answerCallbackQuery(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b callbackBot,
 	CallbackQuery *models.CallbackQuery,
 	text string,
 ) {

@@ -333,7 +333,7 @@ func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 
 func handleOpenPlan(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b callbackBot,
 	CallbackQuery *models.CallbackQuery,
 	rep BotRepository,
 ) {
@@ -418,7 +418,7 @@ func handleOpenPlan(
 
 func editPlanCard(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b callbackBot,
 	CallbackQuery *models.CallbackQuery,
 	plan plans.Plan,
 ) error {
@@ -437,7 +437,7 @@ func editPlanCard(
 
 func handleSetPlanStatus(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b callbackBot,
 	CallbackQuery *models.CallbackQuery,
 	rep BotRepository,
 	done bool,
@@ -545,7 +545,7 @@ func handleSetPlanStatus(
 
 func handleBackToPlans(
 	ctx context.Context,
-	b *tgBot.Bot,
+	b callbackBot,
 	callbackQuery *models.CallbackQuery,
 	rep BotRepository,
 ) {

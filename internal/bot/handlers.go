@@ -396,7 +396,19 @@ func handleOpenPlan(
 		return
 	}
 
-	editPlanCard(ctx, b, CallbackQuery, plan)
+	err = editPlanCard(ctx, b, CallbackQuery, plan)
+
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+		sendText = messageOpenPlanError
+	}
+
+	answerCallbackQuery(
+		ctx,
+		b,
+		CallbackQuery,
+		sendText,
+	)
 }
 
 func editPlanCard(
@@ -404,9 +416,7 @@ func editPlanCard(
 	b *tgBot.Bot,
 	CallbackQuery *models.CallbackQuery,
 	plan plans.Plan,
-) {
-	var sendText string
-
+) error {
 	_, err := b.EditMessageText(
 		ctx,
 		&tgBot.EditMessageTextParams{
@@ -416,6 +426,9 @@ func editPlanCard(
 			ReplyMarkup: planCardKeyboard(plan),
 		},
 	)
+
+	return err
+}
 
 	if err != nil {
 		log.Printf("failed to edit message text: %v", err)

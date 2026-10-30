@@ -446,7 +446,7 @@ func planCardText(plan plans.Plan) string {
 }
 
 func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
-	keyboardRows := make([][]models.InlineKeyboardButton, 1)
+	keyboardRows := make([][]models.InlineKeyboardButton, 2)
 
 	var button models.InlineKeyboardButton
 
@@ -465,7 +465,8 @@ func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
 		Text:         "← К списку",
 		CallbackData: backToPlans,
 	}
-	keyboardRows[0] = []models.InlineKeyboardButton{button, backbutton}
+	keyboardRows[0] = []models.InlineKeyboardButton{button}
+	keyboardRows[1] = []models.InlineKeyboardButton{backbutton}
 
 	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }

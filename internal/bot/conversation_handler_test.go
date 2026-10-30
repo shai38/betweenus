@@ -319,10 +319,13 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 			if baseRep.allCalls != 1 {
 				t.Errorf("All() calls = %d, want 1", baseRep.allCalls)
 			}
-			// if len(sender.messages) != 1 ||
-			// 	sender.messages[0].text != formatPlans([]plans.Plan{baseRepo.addedPlan}) {
-			// 	t.Errorf("messages = %+v, want shared couple plan list", sender.messages)
-			// }
+			if len(sender.messages) != 1 {
+				t.Fatalf("messages = %+v, want one plans response", sender.messages)
+			}
+			wantText, _ := buildPlansMessage([]plans.Plan{baseRep.addedPlan})
+			if sender.messages[0].text != wantText {
+				t.Errorf("message text = %q, want shared couple plan list %q", sender.messages[0].text, wantText)
+			}
 		})
 	}
 }

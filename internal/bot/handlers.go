@@ -18,6 +18,7 @@ const (
 	planSetActivePrefix     = "plan:active:"
 	planSetDonePrefix       = "plan:done:"
 	backToPlansCallbackData = "back_to_plans"
+	deletePlanPrefix        = "delete_plan:"
 )
 
 func handler(

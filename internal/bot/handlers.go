@@ -625,25 +625,29 @@ func planCardText(plan plans.Plan) string {
 func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
 	keyboardRows := make([][]models.InlineKeyboardButton, 2)
 
-	var button models.InlineKeyboardButton
+	var setDoneButton models.InlineKeyboardButton
 
 	if plan.Done {
-		button = models.InlineKeyboardButton{
-			Text:         "↩️ Вернуть в активные",
+		setDoneButton = models.InlineKeyboardButton{
+			Text:         "↩️ В активные",
 			CallbackData: planSetActivePrefix + strconv.FormatInt(plan.ID, 10),
 		}
 	} else {
-		button = models.InlineKeyboardButton{
+		setDoneButton = models.InlineKeyboardButton{
 			Text:         "✅ Выполнить",
 			CallbackData: planSetDonePrefix + strconv.FormatInt(plan.ID, 10),
 		}
 	}
-	backbutton := models.InlineKeyboardButton{
+	backButton := models.InlineKeyboardButton{
 		Text:         "← К списку",
 		CallbackData: backToPlansCallbackData,
 	}
-	keyboardRows[0] = []models.InlineKeyboardButton{button}
-	keyboardRows[1] = []models.InlineKeyboardButton{backbutton}
+	deleteButton := models.InlineKeyboardButton{
+		Text:         "🗑 Удалить",
+		CallbackData: deletePlanPrefix + strconv.FormatInt(plan.ID, 10),
+	}
+	keyboardRows[0] = []models.InlineKeyboardButton{setDoneButton, deleteButton}
+	keyboardRows[1] = []models.InlineKeyboardButton{backButton}
 
 	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }

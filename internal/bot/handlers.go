@@ -335,11 +335,11 @@ func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
 func handleOpenPlan(
 	ctx context.Context,
 	b callbackBot,
-	CallbackQuery *models.CallbackQuery,
+	callbackQuery *models.CallbackQuery,
 	rep BotRepository,
 ) {
 	var sendText string
-	userID := CallbackQuery.From.ID
+	userID := callbackQuery.From.ID
 
 	couple, err := rep.GetCoupleByUserID(userID)
 	if err != nil {
@@ -353,19 +353,19 @@ func handleOpenPlan(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			sendText,
 		)
 		return
 	}
-	idText, found := strings.CutPrefix(CallbackQuery.Data, planOpenPrefix)
+	idText, found := strings.CutPrefix(callbackQuery.Data, planOpenPrefix)
 	if !found {
 		// Callback data не начинается с ожидаемого префикса.
-		log.Printf("failed to cut callbackData: %v", CallbackQuery.Data)
+		log.Printf("failed to cut callbackData: %v", callbackQuery.Data)
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			messageOpenPlanError,
 		)
 		return
@@ -378,7 +378,7 @@ func handleOpenPlan(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			messageOpenPlanError,
 		)
 		return
@@ -396,13 +396,13 @@ func handleOpenPlan(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			sendText,
 		)
 		return
 	}
 
-	err = editPlanCard(ctx, b, CallbackQuery, plan)
+	err = editPlanCard(ctx, b, callbackQuery, plan)
 
 	if err != nil {
 		log.Printf("failed to edit message text: %v", err)
@@ -412,7 +412,7 @@ func handleOpenPlan(
 	answerCallbackQuery(
 		ctx,
 		b,
-		CallbackQuery,
+		callbackQuery,
 		sendText,
 	)
 }
@@ -420,14 +420,14 @@ func handleOpenPlan(
 func editPlanCard(
 	ctx context.Context,
 	b callbackBot,
-	CallbackQuery *models.CallbackQuery,
+	callbackQuery *models.CallbackQuery,
 	plan plans.Plan,
 ) error {
 	_, err := b.EditMessageText(
 		ctx,
 		&tgBot.EditMessageTextParams{
-			ChatID:      CallbackQuery.From.ID,
-			MessageID:   CallbackQuery.Message.Message.ID,
+			ChatID:      callbackQuery.From.ID,
+			MessageID:   callbackQuery.Message.Message.ID,
 			Text:        planCardText(plan),
 			ReplyMarkup: planCardKeyboard(plan),
 		},

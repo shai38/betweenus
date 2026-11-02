@@ -304,8 +304,7 @@ func handleOpenPlan(
 	couple, err := rep.GetCoupleByUserID(userID)
 	if err != nil {
 		if errors.Is(err, couples.ErrCoupleNotFound) {
-			sendText = "Не удалось найти твою пару. " +
-				"Напиши /start, чтобы проверить подключение к паре."
+			sendText = messageCoupleNotFound
 		} else {
 			log.Printf("failed to get couple: %v", err)
 			sendText = messageOpenPlanError
@@ -347,8 +346,7 @@ func handleOpenPlan(
 	plan, err := rep.GetPlanByID(planID, couple.ID)
 	if err != nil {
 		if errors.Is(err, plans.ErrPlanNotFound) {
-			sendText = "Не удалось найти твой план. " +
-				"Напиши /plans, чтобы проверить, что план еще существует."
+			sendText = messagePlanNotFound
 		} else {
 			log.Printf("failed to get plan: %v", err)
 			sendText = messageOpenPlanError
@@ -409,8 +407,7 @@ func handleSetPlanStatus(
 	couple, err := rep.GetCoupleByUserID(userID)
 	if err != nil {
 		if errors.Is(err, couples.ErrCoupleNotFound) {
-			sendText = "Не удалось найти твою пару. " +
-				"Напиши /start, чтобы проверить подключение к паре."
+			sendText = messageCoupleNotFound
 		} else {
 			log.Printf("failed to get couple: %v", err)
 			sendText = messageSetDoneError
@@ -455,8 +452,7 @@ func handleSetPlanStatus(
 	plan, err := rep.GetPlanByID(planID, couple.ID)
 	if err != nil {
 		if errors.Is(err, plans.ErrPlanNotFound) {
-			sendText = "Не удалось найти твой план. " +
-				"Напиши /plans, чтобы проверить, что план еще существует."
+			sendText = messagePlanNotFound
 		} else {
 			log.Printf("failed to get plan: %v", err)
 			sendText = messageSetDoneError
@@ -473,8 +469,7 @@ func handleSetPlanStatus(
 	err = rep.SetDone(plan.ID, couple.ID, done)
 	if err != nil {
 		if errors.Is(err, plans.ErrPlanNotFound) {
-			sendText = "Не удалось найти твой план. " +
-				"Напиши /plans, чтобы проверить, что план еще существует."
+			sendText = messagePlanNotFound
 		} else {
 			log.Printf("failed to set done: %v", err)
 			sendText = messageSetDoneError

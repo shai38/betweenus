@@ -1,7 +1,5 @@
 package bot
 
-const ZeroPlansText = "Пока планов нет. 💭"
-const messagePlanAdded = "План успешно добавлен!"
 const startNewUserText = `BetweenUs 💕
 
 Привет! Добро пожаловать в ваше пространство для двоих.
@@ -25,8 +23,21 @@ const helpIntro = `Твой BetweenUs 💕
 
 Что можно сделать:`
 
-const coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕"
-const messagePlansLoadError = "Не удалось загрузить планы. Попробуй чуть позже. 🙏"
-const messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже. 🙏"
-const messageOpenPlanError = "Не удалось открыть план. Попробуй чуть позже. 🙏"
-const messageSetDoneError = "Не удалось сменить статус плана. Попробуй чуть позже. 🙏"
+const (
+	ZeroPlansText    = "Пока планов нет. 💭"
+	messagePlanAdded = "План успешно добавлен!"
+
+	coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕"
+	messagePlansLoadError     = "Не удалось загрузить планы. Попробуй чуть позже. 🙏"
+
+	messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже. 🙏"
+	messageOpenPlanError    = "Не удалось открыть план. Попробуй чуть позже. 🙏"
+	messageSetDoneError     = "Не удалось сменить статус плана. Попробуй чуть позже. 🙏"
+	messageDeletePlanError  = "Не удалось удалить план. Попробуй чуть позже. 🙏"
+
+	messageCoupleNotFound = "Не удалось найти твою пару. Напиши /start, чтобы проверить подключение к паре."
+	messagePlanNotFound   = "Не удалось найти твой план. Напиши /plans, чтобы проверить, что он ещё существует."
+
+	messagePlanDeleteConfirmation = "Ты действительно хочешь удалить план «%s»?"
+	messagePlanDeleted            = "План удалён."
+)

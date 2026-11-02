@@ -38,9 +38,10 @@ func (fm *fakeMessageSender) SendMessage(
 }
 
 type fakeRepository struct {
-	addedPlan plans.Plan
-	allCalls  int
-	addCalls  int
+	addedPlan   plans.Plan
+	allCalls    int
+	addCalls    int
+	deleteCalls int
 }
 
 func (fr *fakeRepository) Add(newPlan plans.NewPlan, coupleID int64) (int64, error) {
@@ -101,11 +102,12 @@ func (fr *fakeRepository) SetDone(planID int64, coupleID int64, done bool) error
 	return nil
 }
 
-func (fr *fakeRepository) DeletePlan(planID int64) error {
-	if fr.addedPlan.ID == planID {
+func (fr *fakeRepository) DeletePlan(planID int64, coupleID int64) error {
+	fr.deleteCalls++
+	if fr.addedPlan.ID == planID && fr.addedPlan.CoupleID == coupleID {
 		fr.addedPlan = plans.Plan{}
 	} else {
-		return fmt.Errorf("%w: ID = %v", plans.ErrPlanNotFound, planID)
+		return fmt.Errorf("%w: ID = %v, coupleID = %v", plans.ErrPlanNotFound, planID, coupleID)
 	}
 
 	return nil
@@ -183,7 +185,7 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 			messagePlanAdded,
 		)
 	}
-	wantPartnerMessage := "Твой партнёр добавил новый план:" + userConv.NewPlan.Title + ". 💕"
+	wantPartnerMessage := fmt.Sprintf(messagePartnerPlanAdded, userConv.NewPlan.Title)
 	if sender.messages[1].chatID != partnerID || sender.messages[1].text != wantPartnerMessage {
 		t.Errorf(
 			"second message = %+v, want chatID %d and text %q",

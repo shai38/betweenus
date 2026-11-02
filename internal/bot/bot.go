@@ -143,6 +143,20 @@ func New(token string, rep BotRepository) (*Bot, error) {
 				handleBackToPlans(ctx, b, update.CallbackQuery, rep)
 			},
 		),
+		tgBot.WithCallbackQueryDataHandler(
+			planDeleteRequestPrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleRequestPlanDeletion(ctx, b, update.CallbackQuery, rep)
+			},
+		),
+		tgBot.WithCallbackQueryDataHandler(
+			planDeleteConfirmPrefix,
+			tgBot.MatchTypePrefix,
+			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
+				handleConfirmPlanDeletion(ctx, b, update.CallbackQuery, rep)
+			},
+		),
 	)
 	if err != nil {
 		return nil, err

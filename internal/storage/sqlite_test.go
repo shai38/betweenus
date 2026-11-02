@@ -339,6 +339,10 @@ func TestSetDoneOnlyChangesPlansInSameCouple(t *testing.T) {
 func TestDeletePlan(t *testing.T) {
 	rep := newTestRepository(t)
 	coupleID := createTestCouple(t, rep)
+	otherCoupleID, err := rep.CreateCouple(300, 400)
+	if err != nil {
+		t.Fatalf("CreateCouple() for second couple error: %v", err)
+	}
 
 	movieNewPlan := plans.NewPlan{
 		Title: "Вечер кино",
@@ -350,12 +354,25 @@ func TestDeletePlan(t *testing.T) {
 		t.Fatalf("Add() error: %v", err)
 	}
 
-	err = rep.DeletePlan(movieID)
+	err = rep.DeletePlan(movieID, otherCoupleID)
+	if !errors.Is(err, plans.ErrPlanNotFound) {
+		t.Fatalf("DeletePlan() with a different couple ID error = %v, want ErrPlanNotFound", err)
+	}
+
+	res, err := rep.All(coupleID)
+	if err != nil {
+		t.Fatalf("All() after rejected deletion error: %v", err)
+	}
+	if len(res) != 1 || res[0].ID != movieID {
+		t.Fatalf("plans after rejected deletion = %+v, want original plan ID %d", res, movieID)
+	}
+
+	err = rep.DeletePlan(movieID, coupleID)
 	if err != nil {
 		t.Fatalf("Delete() error: %v", err)
 	}
 
-	res, err := rep.All(coupleID)
+	res, err = rep.All(coupleID)
 
 	if err != nil {
 		t.Fatalf("All() error: %v", err)
@@ -365,7 +382,7 @@ func TestDeletePlan(t *testing.T) {
 		t.Fatalf("All() returned %d plans after deletion, want 0", len(res))
 	}
 
-	err = rep.DeletePlan(movieID)
+	err = rep.DeletePlan(movieID, coupleID)
 	if !errors.Is(err, plans.ErrPlanNotFound) {
 		t.Fatalf("expected not found error while deleting, got: %v", err)
 	}

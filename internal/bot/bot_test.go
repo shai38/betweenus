@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	tgBot "github.com/go-telegram/bot"
@@ -34,8 +35,8 @@ func (f *fakeCallbackBot) AnswerCallbackQuery(
 func TestBuildPlansMessage_Empty(t *testing.T) {
 	text, keyboard := buildPlansMessage(nil)
 
-	if text != ZeroPlansText {
-		t.Errorf("text = %q, want %q", text, ZeroPlansText)
+	if text != zeroPlansText {
+		t.Errorf("text = %q, want %q", text, zeroPlansText)
 	}
 	if keyboard != nil {
 		inlineKeyboard, ok := keyboard.(*models.InlineKeyboardMarkup)
@@ -141,7 +142,7 @@ func TestHandleSetPlanStatus_MarksDoneAndActive(t *testing.T) {
 			name:         "mark done",
 			callbackData: planSetDonePrefix + "1",
 			wantDone:     true,
-			wantButton:   "↩️ Вернуть в активные",
+			wantButton:   "↩️ В активные",
 		},
 		{
 			name:         "return to active",
@@ -192,6 +193,116 @@ func TestHandleSetPlanStatus_MarksDoneAndActive(t *testing.T) {
 			}
 			if len(callbackBot.answers) != 1 {
 				t.Errorf("AnswerCallbackQuery calls = %d, want 1", len(callbackBot.answers))
+			}
+		})
+	}
+}
+
+func TestCancelPlanDeletion_DoesNotDeletePlan(t *testing.T) {
+	const (
+		userID   int64 = 123
+		coupleID int64 = 789
+		planID   int64 = 1
+	)
+	callbackBot := &fakeCallbackBot{}
+	rep := &fakeBotRepository{
+		fakeRepository: &fakeRepository{
+			addedPlan: plans.Plan{
+				ID:       planID,
+				NewPlan:  plans.NewPlan{Title: "Вечер кино"},
+				CoupleID: coupleID,
+			},
+		},
+		couple: couples.Couple{ID: coupleID, FirstUserID: userID, SecondUserID: 321},
+	}
+	keyboard := planCardDeleteKeyboard(rep.addedPlan)
+	cancelCallbackData := keyboard.InlineKeyboard[0][1].CallbackData
+
+	handleOpenPlan(
+		context.Background(),
+		callbackBot,
+		testCallbackQuery(userID, cancelCallbackData),
+		rep,
+	)
+
+	if rep.deleteCalls != 0 {
+		t.Errorf("DeletePlan() calls = %d, want 0 after cancellation", rep.deleteCalls)
+	}
+	if rep.addedPlan.ID != planID {
+		t.Errorf("plan ID after cancellation = %d, want %d", rep.addedPlan.ID, planID)
+	}
+	if len(callbackBot.edits) != 1 || callbackBot.edits[0].Text != planCardText(rep.addedPlan) {
+		t.Errorf("cancel did not return to the plan card: edits = %+v", callbackBot.edits)
+	}
+}
+
+func TestConfirmPlanDeletion_RemovesPlanFromBothUsersLists(t *testing.T) {
+	const (
+		coupleID     int64 = 789
+		firstUserID  int64 = 123
+		secondUserID int64 = 321
+		planID       int64 = 1
+	)
+	callbackBot := &fakeCallbackBot{}
+	baseRep := &fakeRepository{
+		addedPlan: plans.Plan{
+			ID:       planID,
+			NewPlan:  plans.NewPlan{Title: "Вечер кино"},
+			CoupleID: coupleID,
+		},
+	}
+	rep := &fakeBotRepository{
+		fakeRepository: baseRep,
+		couple: couples.Couple{
+			ID:           coupleID,
+			FirstUserID:  firstUserID,
+			SecondUserID: secondUserID,
+		},
+	}
+
+	handleConfirmPlanDeletion(
+		context.Background(),
+		callbackBot,
+		testCallbackQuery(firstUserID, planDeleteConfirmPrefix+"1"),
+		rep,
+	)
+
+	if baseRep.deleteCalls != 1 {
+		t.Fatalf("DeletePlan() calls = %d, want 1", baseRep.deleteCalls)
+	}
+	if baseRep.addedPlan.ID != 0 {
+		t.Fatalf("plan after confirmation = %+v, want deleted", baseRep.addedPlan)
+	}
+	if len(callbackBot.answers) != 1 || callbackBot.answers[0].Text != messageDeletePlanSuccess {
+		t.Errorf("confirmation response = %+v, want deletion success message", callbackBot.answers)
+	}
+
+	for _, userID := range []int64{firstUserID, secondUserID} {
+		t.Run(fmt.Sprintf("user_%d", userID), func(t *testing.T) {
+			sender := &fakeMessageSender{}
+			handler(
+				context.Background(),
+				sender,
+				&models.Update{
+					Message: &models.Message{
+						From: &models.User{ID: userID},
+						Chat: models.Chat{ID: userID},
+						Text: CommandPlans,
+					},
+				},
+				rep,
+				NewConversationStore(),
+			)
+
+			if len(sender.messages) != 1 {
+				t.Fatalf("messages = %+v, want one plans response", sender.messages)
+			}
+			if sender.messages[0].text != zeroPlansText {
+				t.Errorf(
+					"plans text = %q, want empty-list text %q",
+					sender.messages[0].text,
+					zeroPlansText,
+				)
 			}
 		})
 	}

@@ -240,7 +240,7 @@ func handlePlanConversation(
 	sendMessage(ctx, b, chatID, messagePlanAdded, nil)
 
 	// Отправление уведомления партнёру о создании плана
-	sendText = "Твой партнёр добавил новый план:" + userConv.NewPlan.Title + ". 💕"
+	sendText = fmt.Sprintf(messagePartnerPlanAdded, userConv.NewPlan.Title)
 	sendMessage(ctx, b, userConv.PartnerID, sendText, nil)
 
 	userConv.Clear()
@@ -283,7 +283,7 @@ func buildPlansMessage(plansList []plans.Plan) (string, models.ReplyMarkup) {
 	var pk *models.InlineKeyboardMarkup
 
 	if len(plansList) == 0 {
-		sendText = ZeroPlansText
+		sendText = zeroPlansText
 		pk = nil
 	} else {
 		sendText = "💞 Наши планы\n\nНажми на план, чтобы посмотреть заметку и действия.\n"
@@ -410,7 +410,7 @@ func handleSetPlanStatus(
 			sendText = messageCoupleNotFound
 		} else {
 			log.Printf("failed to get couple: %v", err)
-			sendText = messageSetDoneError
+			sendText = messageSetPlanStatusError
 		}
 		answerCallbackQuery(
 			ctx,
@@ -430,7 +430,7 @@ func handleSetPlanStatus(
 				ctx,
 				b,
 				callbackQuery,
-				messageSetDoneError,
+				messageSetPlanStatusError,
 			)
 			return
 		}
@@ -444,7 +444,7 @@ func handleSetPlanStatus(
 			ctx,
 			b,
 			callbackQuery,
-			messageSetDoneError,
+			messageSetPlanStatusError,
 		)
 		return
 	}
@@ -455,7 +455,7 @@ func handleSetPlanStatus(
 			sendText = messagePlanNotFound
 		} else {
 			log.Printf("failed to get plan: %v", err)
-			sendText = messageSetDoneError
+			sendText = messageSetPlanStatusError
 		}
 		answerCallbackQuery(
 			ctx,
@@ -472,7 +472,7 @@ func handleSetPlanStatus(
 			sendText = messagePlanNotFound
 		} else {
 			log.Printf("failed to set done: %v", err)
-			sendText = messageSetDoneError
+			sendText = messageSetPlanStatusError
 		}
 		answerCallbackQuery(
 			ctx,

@@ -34,8 +34,8 @@ func (f *fakeCallbackBot) AnswerCallbackQuery(
 func TestBuildPlansMessage_Empty(t *testing.T) {
 	text, keyboard := buildPlansMessage(nil)
 
-	if text != ZeroPlansText {
-		t.Errorf("text = %q, want %q", text, ZeroPlansText)
+	if text != zeroPlansText {
+		t.Errorf("text = %q, want %q", text, zeroPlansText)
 	}
 	if keyboard != nil {
 		inlineKeyboard, ok := keyboard.(*models.InlineKeyboardMarkup)

@@ -183,7 +183,7 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 			messagePlanAdded,
 		)
 	}
-	wantPartnerMessage := "Твой партнёр добавил новый план:" + userConv.NewPlan.Title + ". 💕"
+	wantPartnerMessage := fmt.Sprintf(messagePartnerPlanAdded, userConv.NewPlan.Title)
 	if sender.messages[1].chatID != partnerID || sender.messages[1].text != wantPartnerMessage {
 		t.Errorf(
 			"second message = %+v, want chatID %d and text %q",

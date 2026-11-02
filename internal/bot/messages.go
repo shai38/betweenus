@@ -24,20 +24,21 @@ const helpIntro = `Твой BetweenUs 💕
 Что можно сделать:`
 
 const (
-	ZeroPlansText    = "Пока планов нет. 💭"
-	messagePlanAdded = "План успешно добавлен!"
+	zeroPlansText           = "Пока планов нет. 💭"
+	messagePlanAdded        = "План успешно добавлен!"
+	messagePartnerPlanAdded = "Твой партнёр добавил новый план: «%s». 💕"
 
 	coupleCreatedNotification = "Вы теперь пара в BetweenUs! 💕"
 	messagePlansLoadError     = "Не удалось загрузить планы. Попробуй чуть позже. 🙏"
 
-	messageAddPlanLoadError = "Не удалось добавить план. Попробуй чуть позже. 🙏"
-	messageOpenPlanError    = "Не удалось открыть план. Попробуй чуть позже. 🙏"
-	messageSetDoneError     = "Не удалось сменить статус плана. Попробуй чуть позже. 🙏"
-	messageDeletePlanError  = "Не удалось удалить план. Попробуй чуть позже. 🙏"
+	messageAddPlanLoadError   = "Не удалось добавить план. Попробуй чуть позже. 🙏"
+	messageOpenPlanError      = "Не удалось открыть план. Попробуй чуть позже. 🙏"
+	messageSetPlanStatusError = "Не удалось сменить статус плана. Попробуй чуть позже. 🙏"
+	messageDeletePlanError    = "Не удалось удалить план. Попробуй чуть позже. 🙏"
 
 	messageCoupleNotFound = "Не удалось найти твою пару. Напиши /start, чтобы проверить подключение к паре."
 	messagePlanNotFound   = "Не удалось найти твой план. Напиши /plans, чтобы проверить, что он ещё существует."
 
-	messagePlanDeleteConfirmation = "Ты действительно хочешь удалить план «%s»?"
-	messagePlanDeleted            = "План удалён."
+	messagePlanDeleteConfirmationFormat = "Ты действительно хочешь удалить план «%s»?"
+	messageDeletePlanSuccess            = "План удалён."
 )

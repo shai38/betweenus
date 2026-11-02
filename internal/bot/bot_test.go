@@ -141,7 +141,7 @@ func TestHandleSetPlanStatus_MarksDoneAndActive(t *testing.T) {
 			name:         "mark done",
 			callbackData: planSetDonePrefix + "1",
 			wantDone:     true,
-			wantButton:   "↩️ Вернуть в активные",
+			wantButton:   "↩️ В активные",
 		},
 		{
 			name:         "return to active",

@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -18,7 +19,8 @@ const (
 	planSetActivePrefix     = "plan:active:"
 	planSetDonePrefix       = "plan:done:"
 	backToPlansCallbackData = "back_to_plans"
-	deletePlanPrefix        = "delete_plan:"
+	planDeleteRequestPrefix = "plan:delete_request:"
+	planDeleteConfirmPrefix = "plan:delete_confirm:"
 )
 
 func handler(

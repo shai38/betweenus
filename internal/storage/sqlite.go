@@ -245,7 +245,7 @@ func (r *SQLiteRepository) DeletePlan(planID int64, coupleID int64) error {
 	}
 
 	if rowsCount == 0 {
-		return fmt.Errorf("%w: ID = %v, coupelID = %v", plans.ErrPlanNotFound, planID, coupleID)
+		return fmt.Errorf("%w: ID = %v, coupleID = %v", plans.ErrPlanNotFound, planID, coupleID)
 	}
 
 	return nil

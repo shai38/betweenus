@@ -439,12 +439,12 @@ func editPlanCard(
 func handleSetPlanStatus(
 	ctx context.Context,
 	b callbackBot,
-	CallbackQuery *models.CallbackQuery,
+	callbackQuery *models.CallbackQuery,
 	rep BotRepository,
 	done bool,
 ) {
 	var sendText string
-	userID := CallbackQuery.From.ID
+	userID := callbackQuery.From.ID
 
 	couple, err := rep.GetCoupleByUserID(userID)
 	if err != nil {
@@ -458,21 +458,21 @@ func handleSetPlanStatus(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			sendText,
 		)
 		return
 	}
-	idText, found := strings.CutPrefix(CallbackQuery.Data, planSetActivePrefix)
+	idText, found := strings.CutPrefix(callbackQuery.Data, planSetActivePrefix)
 	if !found {
-		idText, found = strings.CutPrefix(CallbackQuery.Data, planSetDonePrefix)
+		idText, found = strings.CutPrefix(callbackQuery.Data, planSetDonePrefix)
 		if !found {
 			// Callback data не начинается с ожидаемого префикса.
-			log.Printf("failed to cut callbackData: %v", CallbackQuery.Data)
+			log.Printf("failed to cut callbackData: %v", callbackQuery.Data)
 			answerCallbackQuery(
 				ctx,
 				b,
-				CallbackQuery,
+				callbackQuery,
 				messageSetDoneError,
 			)
 			return
@@ -486,7 +486,7 @@ func handleSetPlanStatus(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			messageSetDoneError,
 		)
 		return
@@ -504,7 +504,7 @@ func handleSetPlanStatus(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			sendText,
 		)
 		return
@@ -522,13 +522,13 @@ func handleSetPlanStatus(
 		answerCallbackQuery(
 			ctx,
 			b,
-			CallbackQuery,
+			callbackQuery,
 			sendText,
 		)
 		return
 	}
 	plan.Done = done
-	err = editPlanCard(ctx, b, CallbackQuery, plan)
+	err = editPlanCard(ctx, b, callbackQuery, plan)
 
 	if err != nil {
 		log.Printf("failed to edit message text: %v", err)
@@ -539,7 +539,7 @@ func handleSetPlanStatus(
 	answerCallbackQuery(
 		ctx,
 		b,
-		CallbackQuery,
+		callbackQuery,
 		sendText,
 	)
 }

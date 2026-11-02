@@ -564,6 +564,201 @@ func handleBackToPlans(
 	answerCallbackQuery(ctx, b, callbackQuery, "")
 }
 
+func handleRequestPlanDeletion(
+	ctx context.Context,
+	b callbackBot,
+	callbackQuery *models.CallbackQuery,
+	rep BotRepository,
+) {
+	var sendText string
+	userID := callbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = messageCoupleNotFound
+		} else {
+			log.Printf("failed to get couple: %v", err)
+			sendText = messageDeletePlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			sendText,
+		)
+		return
+	}
+	idText, found := strings.CutPrefix(callbackQuery.Data, planDeleteRequestPrefix)
+	if !found {
+		// Callback data не начинается с ожидаемого префикса.
+		log.Printf("failed to cut callbackData: %v", callbackQuery.Data)
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messageDeletePlanError,
+		)
+		return
+	}
+
+	planID, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		// После префикса нет корректного ID.
+		log.Printf("failed to ParseInt callback planID: %v", err)
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messageDeletePlanError,
+		)
+		return
+	}
+
+	plan, err := rep.GetPlanByID(planID, couple.ID)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = messagePlanNotFound
+		} else {
+			log.Printf("failed to get plan: %v", err)
+			sendText = messageDeletePlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			sendText,
+		)
+		return
+	}
+
+	err = editPlanDeleteConfirmation(ctx, b, callbackQuery, plan)
+
+	if err != nil {
+		log.Printf("failed to edit message text: %v", err)
+		sendText = messageDeletePlanError
+	}
+
+	answerCallbackQuery(
+		ctx,
+		b,
+		callbackQuery,
+		sendText,
+	)
+}
+
+func handleConfirmPlanDeletion(
+	ctx context.Context,
+	b callbackBot,
+	callbackQuery *models.CallbackQuery,
+	rep BotRepository,
+) {
+	var sendText string
+	userID := callbackQuery.From.ID
+
+	couple, err := rep.GetCoupleByUserID(userID)
+	if err != nil {
+		if errors.Is(err, couples.ErrCoupleNotFound) {
+			sendText = messageCoupleNotFound
+		} else {
+			log.Printf("failed to get couple: %v", err)
+			sendText = messageDeletePlanError
+		}
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			sendText,
+		)
+		return
+	}
+	idText, found := strings.CutPrefix(callbackQuery.Data, planDeleteConfirmPrefix)
+	if !found {
+		// Callback data не начинается с ожидаемого префикса.
+		log.Printf("failed to cut callbackData: %v", callbackQuery.Data)
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messageDeletePlanError,
+		)
+		return
+	}
+
+	planID, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		// После префикса нет корректного ID.
+		log.Printf("failed to ParseInt callback planID: %v", err)
+		answerCallbackQuery(
+			ctx,
+			b,
+			callbackQuery,
+			messageDeletePlanError,
+		)
+		return
+	}
+
+	err = rep.DeletePlan(planID, couple.ID)
+	if err != nil {
+		if errors.Is(err, plans.ErrPlanNotFound) {
+			sendText = messagePlanNotFound
+		} else {
+			log.Printf("failed to delete plan: %v", err)
+			sendText = messageDeletePlanError
+		}
+	} else {
+		sendText = messageDeletePlanSuccess
+	}
+
+	answerCallbackQuery(
+		ctx,
+		b,
+		callbackQuery,
+		sendText,
+	)
+
+	allPlans, err := rep.All(couple.ID)
+	if err != nil {
+		log.Printf("failed to get plans: %v", err)
+		return
+	}
+
+	sendText, pk := buildPlansMessage(allPlans)
+
+	_, err = b.EditMessageText(
+		ctx,
+		&tgBot.EditMessageTextParams{
+			ChatID:      callbackQuery.From.ID,
+			MessageID:   callbackQuery.Message.Message.ID,
+			Text:        sendText,
+			ReplyMarkup: pk,
+		},
+	)
+	if err != nil {
+		log.Printf("failed to edit message: %v", err)
+		return
+	}
+}
+
+func editPlanDeleteConfirmation(
+	ctx context.Context,
+	b callbackBot,
+	callbackQuery *models.CallbackQuery,
+	plan plans.Plan,
+) error {
+	_, err := b.EditMessageText(
+		ctx,
+		&tgBot.EditMessageTextParams{
+			ChatID:      callbackQuery.From.ID,
+			MessageID:   callbackQuery.Message.Message.ID,
+			Text:        fmt.Sprintf(messagePlanDeleteConfirmationFormat, plan.Title),
+			ReplyMarkup: planCardDeleteKeyboard(plan),
+		},
+	)
+
+	return err
+}
+
 func planCardText(plan plans.Plan) string {
 	var emoji string
 

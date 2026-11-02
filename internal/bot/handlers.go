@@ -247,26 +247,6 @@ func handlePlanConversation(
 	conversations.Set(userID, userConv)
 }
 
-// startKeyboard создаёт клавиатуру
-func startKeyboard() *models.InlineKeyboardMarkup {
-	return &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{
-					Text:         "Создать приглашение",
-					CallbackData: "create_invitation",
-				},
-			},
-			{
-				{
-					Text:         "У меня есть код",
-					CallbackData: "enter_invitation_code",
-				},
-			},
-		},
-	}
-}
-
 func handlePlans(
 	ctx context.Context,
 	b messageSender,
@@ -310,26 +290,6 @@ func buildPlansMessage(plansList []plans.Plan) (string, models.ReplyMarkup) {
 		pk = plansKeyboard(plansList)
 	}
 	return sendText, pk
-}
-
-func plansKeyboard(plansList []plans.Plan) *models.InlineKeyboardMarkup {
-	keyboardRows := make([][]models.InlineKeyboardButton, len(plansList))
-	for index, plan := range plansList {
-		emoji := ""
-
-		if plan.Done {
-			emoji = "✅"
-		}
-
-		button := models.InlineKeyboardButton{
-			Text:         emoji + " " + plan.Title,
-			CallbackData: "plan:open:" + strconv.FormatInt(plan.ID, 10),
-		}
-
-		keyboardRows[index] = []models.InlineKeyboardButton{button}
-	}
-
-	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
 
 func handleOpenPlan(
@@ -620,36 +580,6 @@ func planCardText(plan plans.Plan) string {
 	}
 
 	return result
-}
-
-func planCardKeyboard(plan plans.Plan) *models.InlineKeyboardMarkup {
-	keyboardRows := make([][]models.InlineKeyboardButton, 2)
-
-	var setDoneButton models.InlineKeyboardButton
-
-	if plan.Done {
-		setDoneButton = models.InlineKeyboardButton{
-			Text:         "↩️ В активные",
-			CallbackData: planSetActivePrefix + strconv.FormatInt(plan.ID, 10),
-		}
-	} else {
-		setDoneButton = models.InlineKeyboardButton{
-			Text:         "✅ Выполнить",
-			CallbackData: planSetDonePrefix + strconv.FormatInt(plan.ID, 10),
-		}
-	}
-	backButton := models.InlineKeyboardButton{
-		Text:         "← К списку",
-		CallbackData: backToPlansCallbackData,
-	}
-	deleteButton := models.InlineKeyboardButton{
-		Text:         "🗑 Удалить",
-		CallbackData: deletePlanPrefix + strconv.FormatInt(plan.ID, 10),
-	}
-	keyboardRows[0] = []models.InlineKeyboardButton{setDoneButton, deleteButton}
-	keyboardRows[1] = []models.InlineKeyboardButton{backButton}
-
-	return &models.InlineKeyboardMarkup{InlineKeyboard: keyboardRows}
 }
 
 func sendMessage(

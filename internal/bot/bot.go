@@ -24,12 +24,14 @@ type callbackBot interface {
 }
 
 type Bot struct {
-	TgBot         *tgBot.Bot
-	Rep           plans.Repository
-	Conversations *ConversationStore
+	TgBot             *tgBot.Bot
+	Rep               plans.Repository
+	Conversations     *ConversationStore
+	planNotifications chan planNotification
 }
 
 func (b *Bot) Start(ctx context.Context) {
+	go planNotificationWorker(ctx, b.TgBot, b.planNotifications)
 	b.TgBot.Start(ctx)
 }
 func (b *Bot) SetMyCommands(ctx context.Context, params *tgBot.SetMyCommandsParams) (bool, error) {
@@ -43,12 +45,13 @@ type messageSender interface {
 func New(token string, rep BotRepository) (*Bot, error) {
 	conversationStore := NewConversationStore()
 	invService := couples.NewInvitationService(rep)
+	planNotifications := make(chan planNotification, 10)
 
 	TgBot, err := tgBot.New(
 		token,
 		tgBot.WithDefaultHandler(
 			func(ctx context.Context, b *tgBot.Bot, update *models.Update) {
-				handler(ctx, b, update, rep, conversationStore)
+				handler(ctx, b, update, rep, conversationStore, planNotifications)
 			},
 		),
 		tgBot.WithCallbackQueryDataHandler(
@@ -163,9 +166,10 @@ func New(token string, rep BotRepository) (*Bot, error) {
 	}
 
 	betweenUsBot := &Bot{
-		TgBot:         TgBot,
-		Rep:           rep,
-		Conversations: conversationStore,
+		TgBot:             TgBot,
+		Rep:               rep,
+		Conversations:     conversationStore,
+		planNotifications: planNotifications,
 	}
 
 	return betweenUsBot, nil

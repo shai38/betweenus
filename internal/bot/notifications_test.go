@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	tgBot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -12,6 +13,34 @@ import (
 
 type notificationSender struct {
 	chatIDs []any
+}
+
+type planNotificationSend struct {
+	chatID any
+	text   string
+}
+
+type planNotificationSender struct {
+	sends      chan planNotificationSend
+	sendErrors []error
+	calls      int
+}
+
+func (s *planNotificationSender) SendMessage(
+	ctx context.Context,
+	params *tgBot.SendMessageParams,
+) (*models.Message, error) {
+	s.sends <- planNotificationSend{
+		chatID: params.ChatID,
+		text:   params.Text,
+	}
+
+	call := s.calls
+	s.calls++
+	if call < len(s.sendErrors) {
+		return nil, s.sendErrors[call]
+	}
+	return nil, nil
 }
 
 func (s *notificationSender) SendMessage(
@@ -63,5 +92,101 @@ func TestNotifyCoupleCreated_DoesNotSendIfCoupleLookupFails(t *testing.T) {
 
 	if len(sender.chatIDs) != 0 {
 		t.Errorf("number of notifications = %d, want 0", len(sender.chatIDs))
+	}
+}
+
+func TestPlanNotificationWorkerSendsNotification(t *testing.T) {
+	const (
+		partnerID int64 = 321
+		planTitle       = "Watch a movie"
+	)
+
+	sender := &planNotificationSender{
+		sends: make(chan planNotificationSend, 1),
+	}
+	notifications := make(chan planNotification, 1)
+	workerDone := make(chan struct{})
+
+	go func() {
+		planNotificationWorker(context.Background(), sender, notifications)
+		close(workerDone)
+	}()
+
+	notifications <- planNotification{
+		partnerID: partnerID,
+		planTitle: planTitle,
+	}
+	close(notifications)
+
+	select {
+	case got := <-sender.sends:
+		wantText := "Твой партнёр добавил новый план: «Watch a movie». 💕"
+		if got.chatID != partnerID || got.text != wantText {
+			t.Errorf(
+				"sent notification = %+v, want chatID %d and text %q",
+				got,
+				partnerID,
+				wantText,
+			)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("worker did not send the notification")
+	}
+
+	select {
+	case <-workerDone:
+	case <-time.After(time.Second):
+		t.Fatal("worker did not stop after the channel was closed")
+	}
+}
+
+func TestPlanNotificationWorkerContinuesAfterSendError(t *testing.T) {
+	const (
+		firstPartnerID  int64 = 321
+		secondPartnerID int64 = 654
+	)
+
+	sender := &planNotificationSender{
+		sends:      make(chan planNotificationSend, 2),
+		sendErrors: []error{errors.New("telegram unavailable")},
+	}
+	notifications := make(chan planNotification, 2)
+	workerDone := make(chan struct{})
+
+	go func() {
+		planNotificationWorker(context.Background(), sender, notifications)
+		close(workerDone)
+	}()
+
+	notifications <- planNotification{partnerID: firstPartnerID, planTitle: "First plan"}
+	notifications <- planNotification{partnerID: secondPartnerID, planTitle: "Second plan"}
+	close(notifications)
+
+	wantSends := []planNotificationSend{
+		{
+			chatID: firstPartnerID,
+			text:   "Твой партнёр добавил новый план: «First plan». 💕",
+		},
+		{
+			chatID: secondPartnerID,
+			text:   "Твой партнёр добавил новый план: «Second plan». 💕",
+		},
+	}
+
+	for i, want := range wantSends {
+		select {
+		case got := <-sender.sends:
+			if got != want {
+				t.Errorf("send %d = %+v, want %+v", i+1, got, want)
+			}
+		case <-time.After(time.Second):
+			t.Fatalf("worker did not attempt send %d", i+1)
+		}
+	}
+
+	select {
+	case <-workerDone:
+	case <-time.After(time.Second):
+		t.Fatal("worker did not stop after the channel was closed")
 	}
 }

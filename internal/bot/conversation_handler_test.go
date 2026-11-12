@@ -39,6 +39,7 @@ func (fm *fakeMessageSender) SendMessage(
 
 type fakeRepository struct {
 	addedPlan   plans.Plan
+	addErr      error
 	allCalls    int
 	addCalls    int
 	deleteCalls int
@@ -46,6 +47,9 @@ type fakeRepository struct {
 
 func (fr *fakeRepository) Add(newPlan plans.NewPlan, coupleID int64) (int64, error) {
 	fr.addCalls++
+	if fr.addErr != nil {
+		return 0, fr.addErr
+	}
 	fr.addedPlan = plans.Plan{
 		ID:       1,
 		NewPlan:  newPlan,
@@ -213,6 +217,39 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 		t.Errorf("State = %v, want %v", userConv.State, StateIdle)
 	}
 
+}
+
+func TestHandlePlanConversation_AddErrorDoesNotQueueNotification(t *testing.T) {
+	rep := &fakeRepository{addErr: fmt.Errorf("database unavailable")}
+	sender := &fakeMessageSender{}
+	conversationStore := NewConversationStore()
+	planNotifications := make(chan planNotification, 1)
+
+	userConv := Conversation{
+		State: StateWaitingForNote,
+		NewPlan: plans.NewPlan{
+			Title: "Watch a movie",
+			Topic: plans.Movies,
+		},
+		CoupleID:  789,
+		PartnerID: 321,
+	}
+
+	handlePlanConversation(
+		context.Background(),
+		sender,
+		rep,
+		conversationStore,
+		userConv,
+		"On Friday",
+		123,
+		456,
+		planNotifications,
+	)
+
+	if len(planNotifications) != 0 {
+		t.Errorf("queued notifications = %d, want 0", len(planNotifications))
+	}
 }
 
 func TestHandlerPlansRequiresCouple(t *testing.T) {

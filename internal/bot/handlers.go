@@ -29,6 +29,7 @@ func handler(
 	update *models.Update,
 	rep BotRepository,
 	conversations *ConversationStore,
+	planNotifications chan<- planNotification,
 ) {
 	if update.Message == nil {
 		return
@@ -82,7 +83,7 @@ func handler(
 		sendMessage(ctx, b, chatID, sendText, nil)
 
 	default:
-		handleConversation(ctx, b, rep, conversations, userText, userID, chatID)
+		handleConversation(ctx, b, rep, conversations, userText, userID, chatID, planNotifications)
 	}
 }
 
@@ -121,6 +122,7 @@ func handleConversation(
 	userText string,
 	userID int64,
 	chatID int64,
+	planNotifications chan<- planNotification,
 ) {
 	userConv, ok := conversations.Get(userID)
 	if !ok {
@@ -138,6 +140,7 @@ func handleConversation(
 			userText,
 			userID,
 			chatID,
+			planNotifications,
 		)
 
 	case StateWaitingForInvitationCode:
@@ -220,6 +223,7 @@ func handlePlanConversation(
 	userText string,
 	userID int64,
 	chatID int64,
+	planNotifications chan<- planNotification,
 ) {
 	userConv, readyToSave := processConversationPlanInput(userConv, userText)
 	var sendText string
@@ -242,8 +246,10 @@ func handlePlanConversation(
 	sendMessage(ctx, b, chatID, messagePlanAdded, nil)
 
 	// Отправление уведомления партнёру о создании плана
-	sendText = fmt.Sprintf(messagePartnerPlanAdded, userConv.NewPlan.Title)
-	sendMessage(ctx, b, userConv.PartnerID, sendText, nil)
+	planNotifications <- planNotification{
+		partnerID: userConv.PartnerID,
+		planTitle: userConv.NewPlan.Title,
+	}
 
 	userConv.Clear()
 	conversations.Set(userID, userConv)

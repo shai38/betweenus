@@ -292,6 +292,7 @@ func TestConfirmPlanDeletion_RemovesPlanFromBothUsersLists(t *testing.T) {
 				},
 				rep,
 				NewConversationStore(),
+				nil,
 			)
 
 			if len(sender.messages) != 1 {

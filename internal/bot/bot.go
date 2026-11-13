@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"sync"
 
 	tgBot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -31,8 +32,12 @@ type Bot struct {
 }
 
 func (b *Bot) Start(ctx context.Context) {
-	go planNotificationWorker(ctx, b.TgBot, b.planNotifications)
+	var workers sync.WaitGroup
+
+	workers.Go(func() { planNotificationWorker(ctx, b.TgBot, b.planNotifications) })
+
 	b.TgBot.Start(ctx)
+	workers.Wait()
 }
 func (b *Bot) SetMyCommands(ctx context.Context, params *tgBot.SetMyCommandsParams) (bool, error) {
 	return b.TgBot.SetMyCommands(ctx, params)

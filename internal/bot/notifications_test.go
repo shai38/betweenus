@@ -190,3 +190,29 @@ func TestPlanNotificationWorkerContinuesAfterSendError(t *testing.T) {
 		t.Fatal("worker did not stop after the channel was closed")
 	}
 }
+
+func TestPlanNotificationWorkerStopsWhenContextIsCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	sender := &planNotificationSender{
+		sends: make(chan planNotificationSend, 1),
+	}
+	notifications := make(chan planNotification)
+	workerDone := make(chan struct{})
+
+	go func() {
+		planNotificationWorker(ctx, sender, notifications)
+		close(workerDone)
+	}()
+
+	cancel()
+
+	select {
+	case <-workerDone:
+	case <-time.After(time.Second):
+		t.Fatal("worker did not stop after the context was cancelled")
+	}
+
+	if len(sender.sends) != 0 {
+		t.Errorf("sent notifications = %d, want 0", len(sender.sends))
+	}
+}

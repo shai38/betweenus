@@ -39,6 +39,7 @@ func (fm *fakeMessageSender) SendMessage(
 
 type fakeRepository struct {
 	addedPlan   plans.Plan
+	addErr      error
 	allCalls    int
 	addCalls    int
 	deleteCalls int
@@ -46,6 +47,9 @@ type fakeRepository struct {
 
 func (fr *fakeRepository) Add(newPlan plans.NewPlan, coupleID int64) (int64, error) {
 	fr.addCalls++
+	if fr.addErr != nil {
+		return 0, fr.addErr
+	}
 	fr.addedPlan = plans.Plan{
 		ID:       1,
 		NewPlan:  newPlan,
@@ -118,6 +122,7 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 	rep := &fakeRepository{}
 	sender := &fakeMessageSender{}
 	conversationStore := NewConversationStore()
+	planNotifications := make(chan planNotification, 1)
 
 	const (
 		userID    int64 = 123
@@ -152,6 +157,7 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 		"On Friday",
 		userID,
 		chatID,
+		planNotifications,
 	)
 
 	// Assert: проверяем сохранённый план
@@ -173,8 +179,8 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 	}
 
 	// Assert: проверяем отправленное сообщение
-	if len(sender.messages) != 2 {
-		t.Fatalf("len(messages) = %d, want 2", len(sender.messages))
+	if len(sender.messages) != 1 {
+		t.Fatalf("len(messages) = %d, want 1", len(sender.messages))
 	}
 
 	if sender.messages[0].chatID != chatID || sender.messages[0].text != messagePlanAdded {
@@ -185,14 +191,21 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 			messagePlanAdded,
 		)
 	}
-	wantPartnerMessage := fmt.Sprintf(messagePartnerPlanAdded, userConv.NewPlan.Title)
-	if sender.messages[1].chatID != partnerID || sender.messages[1].text != wantPartnerMessage {
-		t.Errorf(
-			"second message = %+v, want chatID %d and text %q",
-			sender.messages[1],
-			partnerID,
-			wantPartnerMessage,
-		)
+
+	select {
+	case notification := <-planNotifications:
+		if notification.partnerID != partnerID {
+			t.Errorf("notification partnerID = %d, want %d", notification.partnerID, partnerID)
+		}
+		if notification.planTitle != userConv.NewPlan.Title {
+			t.Errorf(
+				"notification planTitle = %q, want %q",
+				notification.planTitle,
+				userConv.NewPlan.Title,
+			)
+		}
+	default:
+		t.Fatal("no notification was queued")
 	}
 
 	// Assert: проверяем состояние диалога
@@ -204,6 +217,39 @@ func TestHandlePlanConversation_Success(t *testing.T) {
 		t.Errorf("State = %v, want %v", userConv.State, StateIdle)
 	}
 
+}
+
+func TestHandlePlanConversation_AddErrorDoesNotQueueNotification(t *testing.T) {
+	rep := &fakeRepository{addErr: fmt.Errorf("database unavailable")}
+	sender := &fakeMessageSender{}
+	conversationStore := NewConversationStore()
+	planNotifications := make(chan planNotification, 1)
+
+	userConv := Conversation{
+		State: StateWaitingForNote,
+		NewPlan: plans.NewPlan{
+			Title: "Watch a movie",
+			Topic: plans.Movies,
+		},
+		CoupleID:  789,
+		PartnerID: 321,
+	}
+
+	handlePlanConversation(
+		context.Background(),
+		sender,
+		rep,
+		conversationStore,
+		userConv,
+		"On Friday",
+		123,
+		456,
+		planNotifications,
+	)
+
+	if len(planNotifications) != 0 {
+		t.Errorf("queued notifications = %d, want 0", len(planNotifications))
+	}
 }
 
 func TestHandlerPlansRequiresCouple(t *testing.T) {
@@ -232,6 +278,7 @@ func TestHandlerPlansRequiresCouple(t *testing.T) {
 		},
 		rep,
 		conversations,
+		nil,
 	)
 
 	if baseRep.allCalls != 0 {
@@ -268,6 +315,7 @@ func TestHandlerAddPlanRequiresCouple(t *testing.T) {
 		},
 		rep,
 		conversations,
+		nil,
 	)
 
 	if baseRep.addCalls != 0 {
@@ -319,6 +367,7 @@ func TestHandlerPlansUsesCouplePlansForBothUsers(t *testing.T) {
 				},
 				rep,
 				NewConversationStore(),
+				nil,
 			)
 
 			if baseRep.allCalls != 1 {
@@ -367,6 +416,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 			}
 			sender := &fakeMessageSender{}
 			conversations := NewConversationStore()
+			planNotifications := make(chan planNotification, 1)
 
 			handler(
 				context.Background(),
@@ -380,6 +430,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 				},
 				rep,
 				conversations,
+				planNotifications,
 			)
 
 			conversation, ok := conversations.Get(testCase.userID)
@@ -404,6 +455,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 				"Сходить в кино",
 				testCase.userID,
 				testCase.userID,
+				planNotifications,
 			)
 			handleConversation(
 				context.Background(),
@@ -413,6 +465,7 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 				"-",
 				testCase.userID,
 				testCase.userID,
+				planNotifications,
 			)
 
 			if rep.addedPlan.Title != "Сходить в кино" || rep.addedPlan.CoupleID != coupleID {
@@ -422,6 +475,26 @@ func TestHandlerAddPlanStartsForBothUsersInCouple(t *testing.T) {
 					"Сходить в кино",
 					coupleID,
 				)
+			}
+
+			select {
+			case notification := <-planNotifications:
+				if notification.partnerID != testCase.partnerID {
+					t.Errorf(
+						"notification partnerID = %d, want %d",
+						notification.partnerID,
+						testCase.partnerID,
+					)
+				}
+				if notification.planTitle != "Сходить в кино" {
+					t.Errorf(
+						"notification planTitle = %q, want %q",
+						notification.planTitle,
+						"Сходить в кино",
+					)
+				}
+			default:
+				t.Fatal("no notification was queued")
 			}
 		})
 	}

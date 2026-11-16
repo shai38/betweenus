@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	betweenusBot "github.com/shai38/betweenus/internal/bot"
 	"github.com/shai38/betweenus/internal/storage"
@@ -35,7 +37,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx := context.Background()
+	/* Создаёт контекст, который отменится при сигнале завершения приложения
+	от операционной системы */
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+
+	defer stop()
 
 	// Регистрация команд
 	if err := betweenusBot.SetBotCommands(ctx, b); err != nil {
